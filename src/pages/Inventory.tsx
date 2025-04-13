@@ -1,61 +1,39 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Table, TableHeader, TableRow, TableHead, TableBody, TableCell 
-} from "@/components/ui/table";
-import { 
-  Dialog, DialogTrigger, DialogContent, DialogHeader,
-  DialogTitle, DialogDescription, DialogFooter
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, RefreshCcw } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { PlusCircle, ArrowLeft, Trash2, Save, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage
-} from "@/components/ui/form";
-
-// Form schema for adding/updating ingredients
-const ingredientSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  stock: z.coerce.number().min(0, "Stock cannot be negative"),
-  unit: z.string().min(1, "Unit is required")
-});
-
-type IngredientFormValues = z.infer<typeof ingredientSchema>;
 
 const Inventory = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
-  const [selectedIngredient, setSelectedIngredient] = useState<any>(null);
 
-  // Form setup for adding new ingredients
-  const addForm = useForm<IngredientFormValues>({
-    resolver: zodResolver(ingredientSchema),
-    defaultValues: {
-      name: "",
-      stock: 0,
-      unit: ""
-    }
+  // Form state for adding/editing ingredients
+  const [newIngredient, setNewIngredient] = useState({
+    name: "",
+    stock: 0,
+    unit: "",
   });
 
-  // Form setup for updating ingredient stock
-  const updateForm = useForm<{ addStock: number }>({
-    resolver: zodResolver(z.object({
-      addStock: z.coerce.number()
-    })),
-    defaultValues: {
-      addStock: 0
-    }
-  });
+  const [editingIngredient, setEditingIngredient] = useState<null | {
+    id: number;
+    name: string;
+    stock: number;
+    unit: string;
+  }>(null);
 
   // Fetch ingredients
   const { data: ingredients, isLoading } = useQuery({
@@ -79,22 +57,29 @@ const Inventory = () => {
     }
   });
 
-  // Add new ingredient mutation
+  // Add ingredient mutation
   const addIngredient = useMutation({
-    mutationFn: async (values: IngredientFormValues) => {
+    mutationFn: async () => {
+      // Make sure all required fields are non-null
+      const ingredientToAdd = {
+        name: newIngredient.name,
+        stock: newIngredient.stock || 0, // Default to 0 if null
+        unit: newIngredient.unit
+      };
+      
       const { data, error } = await supabase
         .from('ingredients')
-        .insert(values)
-        .select();
+        .insert(ingredientToAdd);
       
       if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Ingredient added successfully" });
-      addForm.reset();
-      setIsAddDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      setNewIngredient({ name: "", stock: 0, unit: "" });
+      toast({ 
+        title: "Ingredient added successfully"
+      });
     },
     onError: (error) => {
       toast({
@@ -105,49 +90,88 @@ const Inventory = () => {
     }
   });
 
-  // Update ingredient stock mutation
-  const updateStock = useMutation({
-    mutationFn: async ({ ingredientId, addStock }: { ingredientId: number, addStock: number }) => {
-      const { data: currentData, error: fetchError } = await supabase
-        .from('ingredients')
-        .select('stock')
-        .eq('id', ingredientId)
-        .single();
-      
-      if (fetchError) throw new Error(fetchError.message);
-      
-      const newStock = (currentData?.stock || 0) + addStock;
+  // Update ingredient mutation
+  const updateIngredient = useMutation({
+    mutationFn: async () => {
+      if (!editingIngredient) return;
       
       const { data, error } = await supabase
         .from('ingredients')
-        .update({ stock: newStock })
-        .eq('id', ingredientId)
-        .select();
+        .update({
+          name: editingIngredient.name,
+          stock: editingIngredient.stock,
+          unit: editingIngredient.unit
+        })
+        .eq('id', editingIngredient.id);
       
       if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Stock updated successfully" });
-      updateForm.reset();
-      setSelectedIngredient(null);
-      setIsUpdateDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      setEditingIngredient(null);
+      toast({ 
+        title: "Ingredient updated successfully"
+      });
     },
     onError: (error) => {
       toast({
-        title: "Failed to update stock",
+        title: "Failed to update ingredient",
         description: error.message,
         variant: "destructive"
       });
     }
   });
 
-  // Handle opening the update dialog
-  const handleUpdateClick = (ingredient: any) => {
-    setSelectedIngredient(ingredient);
-    setIsUpdateDialogOpen(true);
-    updateForm.reset();
+  // Delete ingredient mutation
+  const deleteIngredient = useMutation({
+    mutationFn: async (id: number) => {
+      const { error } = await supabase
+        .from('ingredients')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      toast({ 
+        title: "Ingredient deleted successfully"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete ingredient",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newIngredient.name || !newIngredient.unit) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    addIngredient.mutate();
+  };
+
+  // Start editing an ingredient
+  const handleEdit = (ingredient: {
+    id: number;
+    name: string;
+    stock: number;
+    unit: string;
+  }) => {
+    setEditingIngredient({ ...ingredient });
   };
 
   return (
@@ -165,186 +189,159 @@ const Inventory = () => {
         <h1 className="text-2xl font-bold">Inventory Management</h1>
       </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Ingredients</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-1" />
-              Add New Ingredient
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Ingredient</DialogTitle>
-              <DialogDescription>
-                Enter the details for the new ingredient.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...addForm}>
-              <form onSubmit={addForm.handleSubmit((data) => addIngredient.mutate(data))} className="space-y-4">
-                <FormField
-                  control={addForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Tomatoes" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={addForm.control}
-                  name="stock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Initial Stock</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" step="0.1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={addForm.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>
-                      <FormControl>
-                        <Input placeholder="kg, liters, pieces, etc." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setIsAddDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={addIngredient.isPending}>
-                    {addIngredient.isPending ? "Adding..." : "Add Ingredient"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+      {/* Add Ingredient Form */}
+      <div className="bg-muted/30 rounded-lg p-4 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Add New Ingredient</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="ingredient-name">Name</Label>
+              <Input 
+                id="ingredient-name" 
+                value={newIngredient.name}
+                onChange={(e) => setNewIngredient({ ...newIngredient, name: e.target.value })}
+                placeholder="Tomato" 
+              />
+            </div>
+            <div>
+              <Label htmlFor="ingredient-stock">Initial Stock</Label>
+              <Input 
+                id="ingredient-stock"
+                type="number" 
+                value={newIngredient.stock}
+                onChange={(e) => setNewIngredient({ ...newIngredient, stock: parseFloat(e.target.value) || 0 })}
+                placeholder="10" 
+              />
+            </div>
+            <div>
+              <Label htmlFor="ingredient-unit">Unit</Label>
+              <Input 
+                id="ingredient-unit" 
+                value={newIngredient.unit}
+                onChange={(e) => setNewIngredient({ ...newIngredient, unit: e.target.value })}
+                placeholder="kg" 
+              />
+            </div>
+          </div>
+          <Button type="submit" disabled={addIngredient.isPending}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Ingredient
+          </Button>
+        </form>
       </div>
 
-      {isLoading ? (
-        <p>Loading ingredients...</p>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Current Stock</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ingredients?.length === 0 ? (
+      {/* Ingredients List */}
+      <div className="bg-card rounded-lg shadow">
+        <div className="p-4 border-b">
+          <h2 className="text-lg font-semibold">Current Inventory</h2>
+        </div>
+        {isLoading ? (
+          <div className="p-8 text-center">Loading ingredients...</div>
+        ) : ingredients && ingredients.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    No ingredients found. Add your first ingredient.
-                  </TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>In Stock</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ) : (
-                ingredients?.map((ingredient) => (
+              </TableHeader>
+              <TableBody>
+                {ingredients.map((ingredient) => (
                   <TableRow key={ingredient.id}>
-                    <TableCell>{ingredient.name}</TableCell>
                     <TableCell>
-                      <span className={ingredient.stock < 10 ? "text-destructive font-medium" : ""}>
-                        {ingredient.stock}
-                      </span>
+                      {editingIngredient?.id === ingredient.id ? (
+                        <Input 
+                          value={editingIngredient.name}
+                          onChange={(e) => setEditingIngredient({ 
+                            ...editingIngredient, 
+                            name: e.target.value 
+                          })}
+                        />
+                      ) : (
+                        ingredient.name
+                      )}
                     </TableCell>
-                    <TableCell>{ingredient.unit}</TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleUpdateClick(ingredient)}
-                      >
-                        <RefreshCcw className="h-3.5 w-3.5 mr-1" />
-                        Update Stock
-                      </Button>
+                    <TableCell>
+                      {editingIngredient?.id === ingredient.id ? (
+                        <Input 
+                          type="number"
+                          value={editingIngredient.stock}
+                          onChange={(e) => setEditingIngredient({ 
+                            ...editingIngredient, 
+                            stock: parseFloat(e.target.value) || 0
+                          })}
+                        />
+                      ) : (
+                        `${ingredient.stock} ${ingredient.unit}`
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingIngredient?.id === ingredient.id ? (
+                        <Input 
+                          value={editingIngredient.unit}
+                          onChange={(e) => setEditingIngredient({ 
+                            ...editingIngredient, 
+                            unit: e.target.value 
+                          })}
+                        />
+                      ) : (
+                        ingredient.unit
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingIngredient?.id === ingredient.id ? (
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => updateIngredient.mutate()}
+                            disabled={updateIngredient.isPending}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setEditingIngredient(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEdit(ingredient)}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive"
+                            onClick={() => deleteIngredient.mutate(ingredient.id)}
+                            disabled={deleteIngredient.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {/* Update Stock Dialog */}
-      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Ingredient Stock</DialogTitle>
-            <DialogDescription>
-              {selectedIngredient && (
-                <>
-                  Current stock of {selectedIngredient.name}: <strong>{selectedIngredient.stock} {selectedIngredient.unit}</strong>
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={updateForm.handleSubmit((data) => {
-            if (!selectedIngredient) return;
-            updateStock.mutate({
-              ingredientId: selectedIngredient.id,
-              addStock: data.addStock
-            });
-          })} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="addStock">Add/Remove Stock</Label>
-              <div className="flex items-center space-x-2">
-                <Input 
-                  id="addStock"
-                  type="number"
-                  step="0.1"
-                  placeholder="Enter amount (+ or -)"
-                  {...updateForm.register("addStock", { valueAsNumber: true })}
-                />
-                <span>{selectedIngredient?.unit}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Use positive values to add stock, negative to remove
-              </p>
-            </div>
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsUpdateDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updateStock.isPending}>
-                {updateStock.isPending ? "Updating..." : "Update Stock"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-muted-foreground">
+            No ingredients found. Add some using the form above.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

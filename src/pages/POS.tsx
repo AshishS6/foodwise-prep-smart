@@ -1,17 +1,30 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, MinusCircle, ShoppingCart, ArrowLeft, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { PlusCircle, MinusCircle, ShoppingCart, ArrowLeft, Trash2, Upload, Edit } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { useAuthStore } from "@/stores/authStore";
 
 const POS = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { session } = useAuthStore();
   
   // Cart state
   const [cart, setCart] = useState<Array<{
@@ -20,6 +33,16 @@ const POS = () => {
     price: number;
     quantity: number;
   }>>([]);
+
+  // New menu item state
+  const [newMenuItem, setNewMenuItem] = useState({
+    name: "",
+    price: 0
+  });
+
+  // File upload state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [parsedItems, setParsedItems] = useState<{name: string, price: number}[]>([]);
 
   // Fetch menu items
   const { data: menuItems, isLoading } = useQuery({
@@ -40,6 +63,35 @@ const POS = () => {
       }
       
       return data;
+    }
+  });
+
+  // Add menu item mutation
+  const addMenuItem = useMutation({
+    mutationFn: async (item: { name: string, price: number }) => {
+      const { data, error } = await supabase
+        .from('menuitems')
+        .insert({
+          name: item.name,
+          price: item.price
+        });
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['menuItems'] });
+      setNewMenuItem({ name: "", price: 0 });
+      toast({ 
+        title: "Menu item added successfully"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add menu item",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   });
 
@@ -84,6 +136,77 @@ const POS = () => {
   // Calculate total
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+  // Handle CSV file upload
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setCsvFile(e.target.files[0]);
+    }
+  };
+
+  const parseCSV = () => {
+    if (!csvFile) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!e.target?.result) return;
+      
+      const text = e.target.result.toString();
+      const rows = text.split("\n");
+      const items: {name: string, price: number}[] = [];
+      
+      // Skip header if it exists
+      const startRow = rows[0].toLowerCase().includes("name") && rows[0].toLowerCase().includes("price") ? 1 : 0;
+      
+      for (let i = startRow; i < rows.length; i++) {
+        if (!rows[i].trim()) continue;
+        
+        const columns = rows[i].split(",");
+        if (columns.length >= 2) {
+          const name = columns[0].trim();
+          const price = parseFloat(columns[1].trim());
+          
+          if (name && !isNaN(price)) {
+            items.push({ name, price });
+          }
+        }
+      }
+      
+      setParsedItems(items);
+    };
+    
+    reader.readAsText(csvFile);
+  };
+
+  // Import parsed items
+  const importItems = async () => {
+    if (parsedItems.length === 0) {
+      toast({
+        title: "No items to import",
+        description: "Please upload and parse a CSV file first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      for (const item of parsedItems) {
+        await addMenuItem.mutateAsync(item);
+      }
+      
+      setParsedItems([]);
+      setCsvFile(null);
+      toast({ 
+        title: "Menu items imported successfully"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to import menu items",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   // Submit order mutation
   const submitOrder = useMutation({
     mutationFn: async () => {
@@ -116,7 +239,7 @@ const POS = () => {
           for (const recipe of recipes) {
             const totalUsed = recipe.quantity * item.quantity;
             
-            // Fix: Use the correct syntax for calling RPC function
+            // Use the RPC function to decrement stock
             const { error: updateError } = await supabase.rpc(
               'decrement_stock',
               { 
@@ -126,19 +249,6 @@ const POS = () => {
             );
             
             if (updateError) throw new Error(updateError.message);
-            
-            // Update the actual ingredient record with the new stock value
-            const { error: ingredientError } = await supabase
-              .from('ingredients')
-              .update({ 
-                stock: supabase.rpc('decrement_stock', { 
-                  ingredient_id: recipe.ingredientid, 
-                  amount: totalUsed 
-                })
-              })
-              .eq('id', recipe.ingredientid);
-            
-            if (ingredientError) throw new Error(ingredientError.message);
           }
         }
       }
@@ -163,6 +273,13 @@ const POS = () => {
     }
   });
 
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!session) {
+      navigate('/auth');
+    }
+  }, [session, navigate]);
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center mb-6">
@@ -183,6 +300,137 @@ const POS = () => {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Menu Items</h2>
+            
+            {/* Add Menu Item Dialog */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Menu Item
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Menu Item</DialogTitle>
+                  <DialogDescription>
+                    Add a new item to your restaurant menu.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="item-name">Item Name</Label>
+                    <Input 
+                      id="item-name" 
+                      value={newMenuItem.name}
+                      onChange={(e) => setNewMenuItem({ ...newMenuItem, name: e.target.value })}
+                      placeholder="Butter Chicken"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="item-price">Price (₹)</Label>
+                    <Input 
+                      id="item-price" 
+                      type="number" 
+                      value={newMenuItem.price}
+                      onChange={(e) => setNewMenuItem({ ...newMenuItem, price: parseFloat(e.target.value) || 0 })}
+                      placeholder="250"
+                    />
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button 
+                    onClick={() => {
+                      if (!newMenuItem.name || newMenuItem.price <= 0) {
+                        toast({
+                          title: "Invalid menu item",
+                          description: "Please provide a name and a valid price",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      addMenuItem.mutate(newMenuItem);
+                    }}
+                    disabled={addMenuItem.isPending}
+                  >
+                    Save Item
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            {/* Import Menu Items Dialog */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Menu
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Import Menu Items</DialogTitle>
+                  <DialogDescription>
+                    Upload a CSV file with menu items. Format: Name, Price
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="csv-file">CSV File</Label>
+                    <Input 
+                      id="csv-file" 
+                      type="file" 
+                      accept=".csv" 
+                      onChange={handleFileChange}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Example format: "Butter Chicken, 250"
+                    </p>
+                  </div>
+                  
+                  {csvFile && (
+                    <Button onClick={parseCSV} variant="secondary">
+                      Parse CSV
+                    </Button>
+                  )}
+                  
+                  {parsedItems.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Preview ({parsedItems.length} items):</h3>
+                      <div className="max-h-32 overflow-y-auto border rounded-md">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="px-2 py-1 text-left">Name</th>
+                              <th className="px-2 py-1 text-right">Price (₹)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {parsedItems.map((item, index) => (
+                              <tr key={index} className="border-b last:border-0">
+                                <td className="px-2 py-1">{item.name}</td>
+                                <td className="px-2 py-1 text-right">₹{item.price}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <DialogFooter>
+                  <Button 
+                    onClick={importItems}
+                    disabled={parsedItems.length === 0 || addMenuItem.isPending}
+                  >
+                    Import All
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           
           {isLoading ? (
@@ -198,7 +446,7 @@ const POS = () => {
                   <CardContent className="p-4 flex justify-between items-center">
                     <div>
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)}</p>
                     </div>
                     <PlusCircle className="h-5 w-5 text-primary" />
                   </CardContent>
@@ -226,7 +474,7 @@ const POS = () => {
                   <div key={item.menuItemId} className="flex justify-between items-center bg-background p-3 rounded-md">
                     <div className="flex-1">
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                      <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)} each</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button 
@@ -275,11 +523,11 @@ const POS = () => {
               <div className="py-3 border-t border-border">
                 <div className="flex justify-between mb-2">
                   <span>Subtotal:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
 

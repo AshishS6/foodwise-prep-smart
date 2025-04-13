@@ -1,82 +1,56 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Table, TableHeader, TableRow, TableHead, TableBody, TableCell 
-} from "@/components/ui/table";
-import { 
-  Dialog, DialogTrigger, DialogContent, DialogHeader,
-  DialogTitle, DialogDescription, DialogFooter
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from "@/components/ui/select";
-import { 
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage
-} from "@/components/ui/form";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-// Form schema for recipe creation
-const recipeSchema = z.object({
-  menuitemid: z.coerce.number().min(1, "Menu item is required"),
-  ingredientid: z.coerce.number().min(1, "Ingredient is required"),
-  quantity: z.coerce.number().min(0.01, "Quantity must be greater than 0")
-});
-
-type RecipeFormValues = z.infer<typeof recipeSchema>;
 
 const Recipes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
-  // Form setup
-  const form = useForm<RecipeFormValues>({
-    resolver: zodResolver(recipeSchema),
-    defaultValues: {
-      menuitemid: undefined,
-      ingredientid: undefined,
-      quantity: 0
-    }
+  // Selected menu item for viewing/editing recipe
+  const [selectedMenuItem, setSelectedMenuItem] = useState<number | null>(null);
+  
+  // New recipe ingredient state
+  const [newIngredient, setNewIngredient] = useState<{
+    ingredientId: number | null;
+    quantity: number;
+  }>({
+    ingredientId: null,
+    quantity: 1
   });
-
-  // Fetch recipes with menu item and ingredient names
-  const { data: recipes, isLoading } = useQuery({
-    queryKey: ['recipes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('recipes')
-        .select(`
-          id,
-          quantity,
-          menuitems:menuitemid(id, name),
-          ingredients:ingredientid(id, name, unit)
-        `);
-      
-      if (error) {
-        toast({
-          title: "Error loading recipes",
-          description: error.message,
-          variant: "destructive"
-        });
-        return [];
-      }
-      
-      return data || [];
-    }
-  });
-
-  // Fetch menu items for dropdown
-  const { data: menuItems } = useQuery({
-    queryKey: ['menuItemsForRecipes'],
+  
+  // Fetch menu items
+  const { data: menuItems, isLoading: menuItemsLoading } = useQuery({
+    queryKey: ['menuItems'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('menuitems')
@@ -92,13 +66,13 @@ const Recipes = () => {
         return [];
       }
       
-      return data || [];
+      return data;
     }
   });
-
-  // Fetch ingredients for dropdown
-  const { data: ingredients } = useQuery({
-    queryKey: ['ingredientsForRecipes'],
+  
+  // Fetch ingredients
+  const { data: ingredients, isLoading: ingredientsLoading } = useQuery({
+    queryKey: ['ingredients'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ingredients')
@@ -114,62 +88,108 @@ const Recipes = () => {
         return [];
       }
       
-      return data || [];
+      return data;
     }
   });
-
-  // Add recipe mutation
-  const addRecipe = useMutation({
-    mutationFn: async (values: RecipeFormValues) => {
+  
+  // Fetch recipe for selected menu item
+  const { data: recipe, isLoading: recipeLoading } = useQuery({
+    queryKey: ['recipe', selectedMenuItem],
+    queryFn: async () => {
+      if (!selectedMenuItem) return [];
+      
       const { data, error } = await supabase
         .from('recipes')
-        .insert([values])
-        .select();
+        .select(`
+          id,
+          quantity,
+          ingredients:ingredientid (id, name, unit)
+        `)
+        .eq('menuitemid', selectedMenuItem);
+      
+      if (error) {
+        toast({
+          title: "Error loading recipe",
+          description: error.message,
+          variant: "destructive"
+        });
+        return [];
+      }
+      
+      return data;
+    },
+    enabled: !!selectedMenuItem,
+  });
+  
+  // Add ingredient to recipe
+  const addIngredientToRecipe = useMutation({
+    mutationFn: async () => {
+      if (!selectedMenuItem || !newIngredient.ingredientId) {
+        throw new Error("Missing required fields");
+      }
+      
+      const { data, error } = await supabase
+        .from('recipes')
+        .insert({
+          menuitemid: selectedMenuItem,
+          ingredientid: newIngredient.ingredientId,
+          quantity: newIngredient.quantity
+        });
       
       if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Recipe added successfully" });
-      form.reset();
-      setIsAddDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', selectedMenuItem] });
+      setNewIngredient({ ingredientId: null, quantity: 1 });
+      toast({ 
+        title: "Ingredient added to recipe"
+      });
     },
     onError: (error) => {
       toast({
-        title: "Failed to add recipe",
+        title: "Failed to add ingredient",
         description: error.message,
         variant: "destructive"
       });
     }
   });
-
-  // Delete recipe mutation
-  const deleteRecipe = useMutation({
-    mutationFn: async (id: number) => {
+  
+  // Remove ingredient from recipe
+  const removeIngredientFromRecipe = useMutation({
+    mutationFn: async (recipeId: number) => {
       const { error } = await supabase
         .from('recipes')
         .delete()
-        .eq('id', id);
+        .eq('id', recipeId);
       
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      toast({ title: "Recipe deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe', selectedMenuItem] });
+      toast({ 
+        title: "Ingredient removed from recipe"
+      });
     },
     onError: (error) => {
       toast({
-        title: "Failed to delete recipe",
+        title: "Failed to remove ingredient",
         description: error.message,
         variant: "destructive"
       });
     }
   });
-
-  const onSubmit = (data: RecipeFormValues) => {
-    addRecipe.mutate(data);
+  
+  // Get selected menu item name
+  const getSelectedMenuItemName = () => {
+    if (!selectedMenuItem || !menuItems) return "Select a dish";
+    
+    const item = menuItems.find(item => item.id === selectedMenuItem);
+    return item ? item.name : "Unknown dish";
   };
+
+  // Loading states
+  const isLoading = menuItemsLoading || ingredientsLoading || (selectedMenuItem && recipeLoading);
 
   return (
     <div className="container mx-auto p-4">
@@ -186,146 +206,151 @@ const Recipes = () => {
         <h1 className="text-2xl font-bold">Recipe Management</h1>
       </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Recipes</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-1" />
-              Add New Recipe
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Recipe</DialogTitle>
-              <DialogDescription>
-                Create a new recipe by selecting a menu item, ingredient, and quantity.
-              </DialogDescription>
-            </DialogHeader>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="menuitemid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Menu Item</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a menu item" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {menuItems?.map((item) => (
-                            <SelectItem key={item.id} value={item.id.toString()}>
-                              {item.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="ingredientid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ingredient</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an ingredient" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ingredients?.map((item) => (
-                            <SelectItem key={item.id} value={item.id.toString()}>
-                              {item.name} ({item.unit})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={addRecipe.isPending}>
-                    {addRecipe.isPending ? "Adding..." : "Add Recipe"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {isLoading ? (
-        <p>Loading recipes...</p>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Menu Item</TableHead>
-                <TableHead>Ingredient</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recipes?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    No recipes found. Add your first recipe.
-                  </TableCell>
-                </TableRow>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Menu Items */}
+        <div className="lg:col-span-1 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Menu Items</CardTitle>
+              <CardDescription>Select a dish to view or edit its recipe</CardDescription>
+            </CardHeader>
+            <CardContent className="max-h-[500px] overflow-y-auto">
+              {menuItemsLoading ? (
+                <p>Loading menu items...</p>
+              ) : menuItems && menuItems.length > 0 ? (
+                <div className="space-y-2">
+                  {menuItems.map((item) => (
+                    <Button 
+                      key={item.id} 
+                      variant={selectedMenuItem === item.id ? "default" : "outline"}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedMenuItem(item.id)}
+                    >
+                      <span>{item.name}</span>
+                      <span className="ml-auto text-muted-foreground">₹{item.price}</span>
+                    </Button>
+                  ))}
+                </div>
               ) : (
-                recipes?.map((recipe) => (
-                  <TableRow key={recipe.id}>
-                    <TableCell>{recipe.menuitems?.name}</TableCell>
-                    <TableCell>{recipe.ingredients?.name} ({recipe.ingredients?.unit})</TableCell>
-                    <TableCell>{recipe.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => deleteRecipe.mutate(recipe.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" />
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <p className="text-center text-muted-foreground">
+                  No menu items found.
+                </p>
               )}
-            </TableBody>
-          </Table>
+            </CardContent>
+          </Card>
         </div>
-      )}
+
+        {/* Recipe Details */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recipe: {getSelectedMenuItemName()}</CardTitle>
+              <CardDescription>Manage ingredients required for this dish</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!selectedMenuItem ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Select a dish from the list to view or edit its recipe
+                </p>
+              ) : recipeLoading ? (
+                <p>Loading recipe...</p>
+              ) : (
+                <div className="space-y-6">
+                  {/* Ingredients Table */}
+                  {recipe && recipe.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Ingredient</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Unit</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recipe.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{item.ingredients?.name || 'Unknown'}</TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell>{item.ingredients?.unit || '-'}</TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => removeIngredientFromRecipe.mutate(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-center text-muted-foreground">
+                      No ingredients in this recipe yet. Add some below.
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+            {selectedMenuItem && (
+              <CardFooter className="border-t pt-6">
+                <div className="grid grid-cols-12 gap-4 w-full items-end">
+                  <div className="col-span-6">
+                    <Label htmlFor="ingredient">Ingredient</Label>
+                    <Select
+                      value={newIngredient.ingredientId?.toString() || ""}
+                      onValueChange={(value) => 
+                        setNewIngredient({ ...newIngredient, ingredientId: parseInt(value) })
+                      }
+                    >
+                      <SelectTrigger id="ingredient">
+                        <SelectValue placeholder="Select ingredient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ingredients?.map(ingredient => (
+                          <SelectItem 
+                            key={ingredient.id} 
+                            value={ingredient.id.toString()}
+                          >
+                            {ingredient.name} ({ingredient.unit})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input 
+                      id="quantity" 
+                      type="number"
+                      value={newIngredient.quantity}
+                      onChange={(e) => setNewIngredient({ 
+                        ...newIngredient, 
+                        quantity: parseFloat(e.target.value) || 0 
+                      })}
+                      min="0.01"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Button 
+                      onClick={() => addIngredientToRecipe.mutate()}
+                      disabled={!newIngredient.ingredientId || newIngredient.quantity <= 0}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </CardFooter>
+            )}
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
