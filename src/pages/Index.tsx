@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -146,7 +145,7 @@ const Index = () => {
               <p>Loading...</p>
             ) : (
               <>
-                <p className="text-3xl font-bold">₹{todaySales?.totalRevenue.toFixed(2)}</p>
+                <p className="text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
                 <p className="text-sm text-muted-foreground">{todaySales?.orders.length || 0} orders today</p>
               </>
             )}
