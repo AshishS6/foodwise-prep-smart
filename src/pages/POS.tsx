@@ -116,17 +116,29 @@ const POS = () => {
           for (const recipe of recipes) {
             const totalUsed = recipe.quantity * item.quantity;
             
-            const { error: updateError } = await supabase
+            // Fix: Use the correct syntax for calling RPC function
+            const { error: updateError } = await supabase.rpc(
+              'decrement_stock',
+              { 
+                ingredient_id: recipe.ingredientid,
+                amount: totalUsed 
+              }
+            );
+            
+            if (updateError) throw new Error(updateError.message);
+            
+            // Update the actual ingredient record with the new stock value
+            const { error: ingredientError } = await supabase
               .from('ingredients')
               .update({ 
                 stock: supabase.rpc('decrement_stock', { 
                   ingredient_id: recipe.ingredientid, 
                   amount: totalUsed 
-                }) 
+                })
               })
               .eq('id', recipe.ingredientid);
             
-            if (updateError) throw new Error(updateError.message);
+            if (ingredientError) throw new Error(ingredientError.message);
           }
         }
       }

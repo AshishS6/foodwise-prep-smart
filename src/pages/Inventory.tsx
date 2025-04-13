@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -85,7 +84,7 @@ const Inventory = () => {
     mutationFn: async (values: IngredientFormValues) => {
       const { data, error } = await supabase
         .from('ingredients')
-        .insert([values])
+        .insert(values)
         .select();
       
       if (error) throw new Error(error.message);
@@ -109,7 +108,6 @@ const Inventory = () => {
   // Update ingredient stock mutation
   const updateStock = useMutation({
     mutationFn: async ({ ingredientId, addStock }: { ingredientId: number, addStock: number }) => {
-      // Get current stock first
       const { data: currentData, error: fetchError } = await supabase
         .from('ingredients')
         .select('stock')
