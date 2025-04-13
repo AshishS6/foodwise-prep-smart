@@ -12,6 +12,7 @@ import Recipes from "./pages/Recipes";
 import PrepPlans from "./pages/PrepPlans";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import OrderHistory from "./pages/OrderHistory";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <PrepPlans />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/order-history" 
+            element={
+              <ProtectedRoute>
+                <OrderHistory />
               </ProtectedRoute>
             } 
           />

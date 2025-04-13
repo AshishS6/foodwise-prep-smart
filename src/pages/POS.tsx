@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusCircle, MinusCircle, ShoppingCart, ArrowLeft, Trash2, Upload, Edit } from "lucide-react";
+import { PlusCircle, MinusCircle, ShoppingCart, ArrowLeft, Trash2, Upload, Edit, Download } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -32,12 +33,14 @@ const POS = () => {
     name: string;
     price: number;
     quantity: number;
+    isHalf: boolean;
   }>>([]);
 
   // New menu item state
   const [newMenuItem, setNewMenuItem] = useState({
     name: "",
-    price: 0
+    price: 0,
+    isHalf: false
   });
 
   // File upload state
@@ -81,7 +84,7 @@ const POS = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
-      setNewMenuItem({ name: "", price: 0 });
+      setNewMenuItem({ name: "", price: 0, isHalf: false });
       toast({ 
         title: "Menu item added successfully"
       });
@@ -96,29 +99,42 @@ const POS = () => {
   });
 
   // Add item to cart
-  const addToCart = (item: any) => {
-    const existingItem = cart.find(cartItem => cartItem.menuItemId === item.id);
+  const addToCart = (item: any, isHalf: boolean = false) => {
+    const price = isHalf ? item.price / 2 : item.price;
+    const itemName = isHalf ? `${item.name} (Half)` : item.name;
     
-    if (existingItem) {
-      setCart(cart.map(cartItem => 
-        cartItem.menuItemId === item.id 
-          ? { ...cartItem, quantity: cartItem.quantity + 1 } 
-          : cartItem
-      ));
+    // Create a unique identifier for the item based on id and half status
+    const cartItemId = `${item.id}-${isHalf ? 'half' : 'full'}`;
+    
+    // Check if this specific item variant (half or full) already exists in cart
+    const existingItemIndex = cart.findIndex(cartItem => 
+      cartItem.menuItemId === item.id && cartItem.isHalf === isHalf
+    );
+    
+    if (existingItemIndex !== -1) {
+      // Update the quantity of the existing item
+      const updatedCart = [...cart];
+      updatedCart[existingItemIndex] = {
+        ...updatedCart[existingItemIndex],
+        quantity: updatedCart[existingItemIndex].quantity + 1
+      };
+      setCart(updatedCart);
     } else {
+      // Add as a new item
       setCart([...cart, {
         menuItemId: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: 1
+        name: itemName,
+        price: price,
+        quantity: 1,
+        isHalf: isHalf
       }]);
     }
   };
 
   // Update item quantity in cart
-  const updateQuantity = (menuItemId: number, change: number) => {
+  const updateQuantity = (menuItemId: number, isHalf: boolean, change: number) => {
     const updatedCart = cart.map(item => {
-      if (item.menuItemId === menuItemId) {
+      if (item.menuItemId === menuItemId && item.isHalf === isHalf) {
         const newQuantity = Math.max(0, item.quantity + change);
         return { ...item, quantity: newQuantity };
       }
@@ -129,8 +145,8 @@ const POS = () => {
   };
 
   // Remove item from cart
-  const removeFromCart = (menuItemId: number) => {
-    setCart(cart.filter(item => item.menuItemId !== menuItemId));
+  const removeFromCart = (menuItemId: number, isHalf: boolean) => {
+    setCart(cart.filter(item => !(item.menuItemId === menuItemId && item.isHalf === isHalf)));
   };
 
   // Calculate total
@@ -141,6 +157,22 @@ const POS = () => {
     if (e.target.files && e.target.files.length > 0) {
       setCsvFile(e.target.files[0]);
     }
+  };
+
+  // Generate and download sample template
+  const downloadSampleTemplate = () => {
+    const csvHeader = "Name,Price\n";
+    const sampleData = "Butter Chicken,250\nPaneer Tikka,200\nVeg Biryani,180\nNaan,30\n";
+    const csvContent = csvHeader + sampleData;
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "menu_items_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const parseCSV = () => {
@@ -237,7 +269,9 @@ const POS = () => {
         // Update stock for each ingredient
         if (recipes) {
           for (const recipe of recipes) {
-            const totalUsed = recipe.quantity * item.quantity;
+            // For half items, use half the ingredients
+            const multiplier = item.isHalf ? 0.5 : 1;
+            const totalUsed = recipe.quantity * item.quantity * multiplier;
             
             // Use the RPC function to decrement stock
             const { error: updateError } = await supabase.rpc(
@@ -388,6 +422,15 @@ const POS = () => {
                     <p className="text-xs text-muted-foreground">
                       Example format: "Butter Chicken, 250"
                     </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={downloadSampleTemplate}
+                      className="flex items-center mt-1"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Sample Template
+                    </Button>
                   </div>
                   
                   {csvFile && (
@@ -440,15 +483,37 @@ const POS = () => {
               {menuItems?.map((item) => (
                 <Card 
                   key={item.id} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => addToCart(item)}
+                  className="hover:bg-muted/50 transition-colors"
                 >
-                  <CardContent className="p-4 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)}</p>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)}</p>
+                      </div>
                     </div>
-                    <PlusCircle className="h-5 w-5 text-primary" />
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor={`half-${item.id}`} className="text-sm">Half</Label>
+                        <Switch id={`half-${item.id}`} onCheckedChange={(checked) => setNewMenuItem({ ...newMenuItem, isHalf: checked })} />
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => addToCart(item, true)}
+                          title="Add half portion"
+                        >
+                          Add Half
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => addToCart(item, false)}
+                        >
+                          Add Full
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -470,8 +535,8 @@ const POS = () => {
           ) : (
             <>
               <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto">
-                {cart.map((item) => (
-                  <div key={item.menuItemId} className="flex justify-between items-center bg-background p-3 rounded-md">
+                {cart.map((item, index) => (
+                  <div key={`${item.menuItemId}-${item.isHalf}-${index}`} className="flex justify-between items-center bg-background p-3 rounded-md">
                     <div className="flex-1">
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)} each</p>
@@ -481,7 +546,7 @@ const POS = () => {
                         variant="ghost" 
                         size="sm" 
                         className="h-8 w-8 p-0"
-                        onClick={() => updateQuantity(item.menuItemId, -1)}
+                        onClick={() => updateQuantity(item.menuItemId, item.isHalf, -1)}
                       >
                         <MinusCircle className="h-4 w-4" />
                       </Button>
@@ -490,8 +555,8 @@ const POS = () => {
                         value={item.quantity} 
                         onChange={(e) => {
                           const newQuantity = parseInt(e.target.value) || 0;
-                          setCart(cart.map(cartItem => 
-                            cartItem.menuItemId === item.menuItemId 
+                          setCart(cart.map((cartItem, cartIndex) => 
+                            cartIndex === index 
                               ? { ...cartItem, quantity: Math.max(0, newQuantity) } 
                               : cartItem
                           ));
@@ -503,7 +568,7 @@ const POS = () => {
                         variant="ghost" 
                         size="sm" 
                         className="h-8 w-8 p-0"
-                        onClick={() => updateQuantity(item.menuItemId, 1)}
+                        onClick={() => updateQuantity(item.menuItemId, item.isHalf, 1)}
                       >
                         <PlusCircle className="h-4 w-4" />
                       </Button>
@@ -511,7 +576,7 @@ const POS = () => {
                         variant="ghost" 
                         size="sm" 
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => removeFromCart(item.menuItemId)}
+                        onClick={() => removeFromCart(item.menuItemId, item.isHalf)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

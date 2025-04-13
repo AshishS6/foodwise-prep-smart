@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, ChefHat, ScrollText, ShoppingCart, Package } from "lucide-react";
+import { BarChart3, ChefHat, ScrollText, ShoppingCart, Package, ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -133,16 +133,20 @@ const Index = () => {
 
       {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
+        <Card 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => navigate('/order-history')}
+        >
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-medium">Today's Sales</CardTitle>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {salesLoading ? (
               <p>Loading...</p>
             ) : (
               <>
-                <p className="text-3xl font-bold">${todaySales?.totalRevenue.toFixed(2)}</p>
+                <p className="text-3xl font-bold">₹{todaySales?.totalRevenue.toFixed(2)}</p>
                 <p className="text-sm text-muted-foreground">{todaySales?.orders.length || 0} orders today</p>
               </>
             )}
