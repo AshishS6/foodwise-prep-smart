@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +31,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
   const [newMenuItem, setNewMenuItem] = useState({
     name: "",
     price: 0,
-    supportsHalf: true // Added to track if item supports half portion
+    supportsHalf: false // Default to false, toggle on when needed
   });
   
   // File upload state
@@ -63,12 +62,13 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
   
   // Add menu item mutation
   const addMenuItem = useMutation({
-    mutationFn: async (item: { name: string, price: number }) => {
+    mutationFn: async (item: { name: string, price: number, supportsHalf: boolean }) => {
       const { data, error } = await supabase
         .from('menuitems')
         .insert({
           name: item.name,
-          price: item.price
+          price: item.price,
+          supportsHalf: item.supportsHalf // Save supportsHalf flag to database
         });
       
       if (error) throw new Error(error.message);
@@ -76,7 +76,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
-      setNewMenuItem({ name: "", price: 0, supportsHalf: true });
+      setNewMenuItem({ name: "", price: 0, supportsHalf: false });
       toast({ 
         title: "Menu item added successfully"
       });
@@ -92,8 +92,8 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
   
   // Generate and download sample template
   const downloadSampleTemplate = () => {
-    const csvHeader = "Name,Price\n";
-    const sampleData = "Butter Chicken,250\nPaneer Tikka,200\nVeg Biryani,180\nNaan,30\n";
+    const csvHeader = "Name,Price,SupportsHalf\n";
+    const sampleData = "Butter Chicken,250,true\nPaneer Tikka,200,true\nVeg Biryani,180,false\nNaan,30,false\n";
     const csvContent = csvHeader + sampleData;
     
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -123,7 +123,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
       
       const text = e.target.result.toString();
       const rows = text.split("\n");
-      const items: {name: string, price: number}[] = [];
+      const items: {name: string, price: number, supportsHalf: boolean}[] = [];
       
       // Skip header if it exists
       const startRow = rows[0].toLowerCase().includes("name") && rows[0].toLowerCase().includes("price") ? 1 : 0;
@@ -135,9 +135,12 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
         if (columns.length >= 2) {
           const name = columns[0].trim();
           const price = parseFloat(columns[1].trim());
+          // If supportsHalf column exists, parse it, otherwise default to false
+          const supportsHalf = columns.length > 2 ? 
+            columns[2].trim().toLowerCase() === 'true' : false;
           
           if (name && !isNaN(price)) {
-            items.push({ name, price });
+            items.push({ name, price, supportsHalf });
           }
         }
       }
@@ -214,18 +217,18 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
                 <Input 
                   id="item-price" 
                   type="number" 
-                  value={newMenuItem.price}
+                  value={newMenuItem.price || ''}
                   onChange={(e) => setNewMenuItem({ ...newMenuItem, price: parseFloat(e.target.value) || 0 })}
                   placeholder="250"
                 />
               </div>
               <div className="flex items-center space-x-2">
-                <Label htmlFor="supports-half">Supports Half Portion</Label>
                 <Switch 
                   id="supports-half" 
                   checked={newMenuItem.supportsHalf}
                   onCheckedChange={(checked) => setNewMenuItem({ ...newMenuItem, supportsHalf: checked })}
                 />
+                <Label htmlFor="supports-half">Half Portion Available (H)</Label>
               </div>
             </div>
             
@@ -262,7 +265,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
             <DialogHeader>
               <DialogTitle>Import Menu Items</DialogTitle>
               <DialogDescription>
-                Upload a CSV file with menu items. Format: Name, Price
+                Upload a CSV file with menu items. Format: Name, Price, SupportsHalf
               </DialogDescription>
             </DialogHeader>
             
@@ -276,7 +279,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
                   onChange={handleFileChange}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Example format: "Butter Chicken, 250"
+                  Example format: "Butter Chicken, 250, true"
                 </p>
                 <Button 
                   variant="outline" 
@@ -304,6 +307,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
                         <tr className="border-b">
                           <th className="px-2 py-1 text-left">Name</th>
                           <th className="px-2 py-1 text-right">Price (₹)</th>
+                          <th className="px-2 py-1 text-center">Half Available</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -311,6 +315,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
                           <tr key={index} className="border-b last:border-0">
                             <td className="px-2 py-1">{item.name}</td>
                             <td className="px-2 py-1 text-right">₹{item.price}</td>
+                            <td className="px-2 py-1 text-center">{item.supportsHalf ? '✓' : '✗'}</td>
                           </tr>
                         ))}
                       </tbody>

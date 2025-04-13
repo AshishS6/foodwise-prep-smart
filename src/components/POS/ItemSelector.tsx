@@ -1,16 +1,16 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
 
 interface ItemSelectorProps {
   item: {
-    id: number;
+    id: string;
     name: string;
     price: number;
+    supportsHalf: boolean; // Flag to check if item supports half portion
   };
   onAddToCart: (item: any, isHalf: boolean) => void;
 }
@@ -18,44 +18,37 @@ interface ItemSelectorProps {
 const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
   const [isHalf, setIsHalf] = useState(false);
   
+  const handleAddToCart = () => {
+    onAddToCart(item, isHalf);
+  };
+  
   return (
-    <Card className="hover:bg-muted/50 transition-colors">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <p className="font-medium">{item.name}</p>
-            <p className="text-sm text-muted-foreground">
-              ₹{isHalf ? (item.price / 2).toFixed(2) : item.price.toFixed(2)}
-              {isHalf ? " (Half)" : " (Full)"}
-            </p>
+    <Card className="overflow-hidden">
+      <CardContent className="p-3">
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="font-medium">{item.name}</h3>
+              <p className="text-muted-foreground text-sm">₹{item.price}</p>
+            </div>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleAddToCart}>
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
-        
-        <div className="flex flex-col space-y-3">
-          {/* Portion Size Selector */}
-          <RadioGroup 
-            value={isHalf ? "half" : "full"}
-            onValueChange={(value) => setIsHalf(value === "half")}
-            className="flex space-x-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="full" id={`full-${item.id}`} />
-              <Label htmlFor={`full-${item.id}`}>Full</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="half" id={`half-${item.id}`} />
-              <Label htmlFor={`half-${item.id}`}>Half</Label>
-            </div>
-          </RadioGroup>
           
-          {/* Add Button */}
-          <Button 
-            size="sm"
-            onClick={() => onAddToCart(item, isHalf)}
-            className="w-full mt-2"
-          >
-            Add to Order
-          </Button>
+          {/* Half portion toggle - only shown if item supports half portions */}
+          {item.supportsHalf && (
+            <div className="flex items-center space-x-2 mt-2">
+              <Switch
+                id={`half-toggle-${item.id}`}
+                checked={isHalf}
+                onCheckedChange={setIsHalf}
+              />
+              <Label htmlFor={`half-toggle-${item.id}`} className="text-sm cursor-pointer">
+                Half (H)
+              </Label>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
