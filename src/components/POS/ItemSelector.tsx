@@ -4,14 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, HalfCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ItemSelectorProps {
   item: {
     id: string | number;
     name: string;
     price: number;
-    halfPrice?: number; // Added half price field
+    halfPrice?: number; // Half price field
     supportsHalf?: boolean;
     supportshalf?: boolean;
   };
@@ -51,11 +52,20 @@ const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
           {/* Half portion toggle - only shown if item supports half portions */}
           {supportsHalfPortion && (
             <div className="flex items-center space-x-2 mt-2">
-              <Switch
-                id={`half-toggle-${item.id}`}
-                checked={isHalf}
-                onCheckedChange={setIsHalf}
-              />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Switch
+                      id={`half-toggle-${item.id}`}
+                      checked={isHalf}
+                      onCheckedChange={setIsHalf}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Half Portion (H)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Label htmlFor={`half-toggle-${item.id}`} className="text-sm cursor-pointer">
                 Half (H)
               </Label>

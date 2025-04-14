@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           id: number
@@ -32,18 +62,21 @@ export type Database = {
       }
       menuitems: {
         Row: {
+          halfprice: number | null
           id: number
           name: string
           price: number
           supportshalf: boolean | null
         }
         Insert: {
+          halfprice?: number | null
           id?: number
           name: string
           price: number
           supportshalf?: boolean | null
         }
         Update: {
+          halfprice?: number | null
           id?: number
           name?: string
           price?: number
@@ -135,6 +168,33 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          role: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          role: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -143,6 +203,19 @@ export type Database = {
       decrement_stock: {
         Args: { ingredient_id: number; amount: number }
         Returns: number
+      }
+      get_user_role: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
+      log_activity: {
+        Args: {
+          action: string
+          entity_type: string
+          entity_id: string
+          details: Json
+        }
+        Returns: string
       }
     }
     Enums: {

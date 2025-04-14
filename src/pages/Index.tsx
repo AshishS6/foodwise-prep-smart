@@ -1,5 +1,5 @@
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -24,11 +24,8 @@ import { useAuthStore } from "@/stores/authStore";
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuthStore();
+  const { user, userRole } = useAuthStore();
   const timeZone = "Asia/Kolkata";
-
-  // Mock roles for demonstration (in a real app, would come from auth system)
-  const userRole = "Admin"; // Default to Admin for demo
 
   // Fetch today's sales data
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
@@ -161,7 +158,7 @@ const Index = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            👤 {user?.email || "User"} | {userRole}
+            👤 {user?.email || "User"} | {userRole || "Guest"}
           </div>
           <Button variant="outline" className="flex gap-2" onClick={() => navigate('/analytics')}>
             <BarChart3 className="h-5 w-5 text-primary" />
@@ -271,6 +268,48 @@ const Index = () => {
             </div>
           </Button>
         ))}
+      </div>
+
+      {/* Quick Action Buttons - Only shown on home page */}
+      <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="rounded-full h-12 w-12 shadow-lg" onClick={() => navigate('/pos')}>
+                <ShoppingCart className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>New Order</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="rounded-full h-12 w-12 shadow-lg bg-orange-500 hover:bg-orange-600" onClick={() => navigate('/inventory')}>
+                <Package className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>New Purchase</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="rounded-full h-12 w-12 shadow-lg bg-green-500 hover:bg-green-600" onClick={() => navigate('/recipes')}>
+                <ScrollText className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Add Recipe</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
