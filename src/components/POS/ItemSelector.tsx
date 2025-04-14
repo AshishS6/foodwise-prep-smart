@@ -11,7 +11,8 @@ interface ItemSelectorProps {
     id: string | number;
     name: string;
     price: number;
-    supportsHalf?: boolean; // Support both supportsHalf and supportshalf
+    halfPrice?: number; // Added half price field
+    supportsHalf?: boolean;
     supportshalf?: boolean;
   };
   onAddToCart: (item: any, isHalf: boolean) => void;
@@ -26,6 +27,13 @@ const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
     onAddToCart(item, isHalf);
   };
   
+  // Calculate display price based on selection
+  const displayPrice = isHalf && item.halfPrice 
+    ? item.halfPrice 
+    : isHalf 
+      ? item.price / 2 
+      : item.price;
+  
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-3">
@@ -33,7 +41,7 @@ const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
           <div className="flex justify-between items-start mb-2">
             <div>
               <h3 className="font-medium">{item.name}</h3>
-              <p className="text-muted-foreground text-sm">₹{item.price}</p>
+              <p className="text-muted-foreground text-sm">₹{displayPrice}</p>
             </div>
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleAddToCart}>
               <Plus className="h-4 w-4" />

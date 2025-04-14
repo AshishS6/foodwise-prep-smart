@@ -2,10 +2,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BarChart3, Calculator, PlusSquare, ShoppingBag } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuthStore } from "@/stores/authStore";
 import MenuList from "./MenuList";
 import OrderList from "./OrderList";
 
@@ -18,10 +20,17 @@ export type CartItem = {
   isHalf: boolean;
 };
 
+// Mock roles for demonstration (in a real app, would come from auth system)
+const ROLES = ["Admin", "Kitchen Staff", "Cashier"];
+
 const POSContainer = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuthStore();
+  
+  // For demo purposes - in a real app this would come from user profile
+  const [userRole] = useState(ROLES[0]); // Default to Admin for demo
   
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -31,7 +40,8 @@ const POSContainer = () => {
 
   // Add item to cart
   const addToCart = (item: any, isHalf: boolean = false) => {
-    const price = isHalf ? item.price / 2 : item.price;
+    // Use specific half price if available, otherwise calculate as half of full price
+    const price = isHalf ? (item.halfPrice || item.price / 2) : item.price;
     const itemName = isHalf ? `${item.name} (Half)` : item.name;
     
     // Check if this specific item variant already exists in cart
@@ -160,17 +170,80 @@ const POSContainer = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="mr-2"
-          onClick={() => navigate('/')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold">Point of Sale</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-2"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">Point of Sale</h1>
+        </div>
+        
+        {/* User and role info */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">👤 {user?.email} | {userRole}</span>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/analytics')}>
+                  <BarChart3 className="h-4 w-4 mr-1" />
+                  Analytics
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View Sales Analytics</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+
+      {/* Quick Action Buttons */}
+      <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="rounded-full h-12 w-12 shadow-lg" onClick={() => navigate('/pos')}>
+                <Calculator className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>New Order</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="rounded-full h-12 w-12 shadow-lg bg-orange-500 hover:bg-orange-600" onClick={() => navigate('/inventory')}>
+                <ShoppingBag className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>New Purchase</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="rounded-full h-12 w-12 shadow-lg bg-green-500 hover:bg-green-600" onClick={() => navigate('/recipes')}>
+                <PlusSquare className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Add Recipe</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
