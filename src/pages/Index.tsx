@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -16,19 +15,18 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { utcToZonedTime } from "date-fns-tz";
+import { toZonedTime } from "date-fns-tz";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const timeZone = "Asia/Kolkata"; // Indian time zone
+  const timeZone = "Asia/Kolkata";
 
   // Fetch today's sales data
   const { data: todaySales, isLoading: salesLoading } = useQuery({
     queryKey: ['todaySales'],
     queryFn: async () => {
-      // Get today's date at 00:00:00 in Indian time zone
-      const today = utcToZonedTime(new Date(), timeZone);
+      const today = toZonedTime(new Date(), timeZone);
       today.setHours(0, 0, 0, 0);
       
       const { data, error } = await supabase
@@ -56,7 +54,6 @@ const Index = () => {
   const { data: lowStockIngredients, isLoading: ingredientsLoading } = useQuery({
     queryKey: ['lowStockIngredients'],
     queryFn: async () => {
-      // Threshold could be configured per ingredient in a real system
       const THRESHOLD = 10; 
       
       const { data, error } = await supabase
@@ -81,8 +78,7 @@ const Index = () => {
   const { data: prepPlan, isLoading: prepLoading } = useQuery({
     queryKey: ['tomorrowPrepPlan'],
     queryFn: async () => {
-      // Get tomorrow's date in Indian time zone
-      const tomorrow = utcToZonedTime(new Date(), timeZone);
+      const tomorrow = toZonedTime(new Date(), timeZone);
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
       

@@ -8,15 +8,18 @@ import { Plus } from "lucide-react";
 
 interface ItemSelectorProps {
   item: {
-    id: string;
+    id: string | number;
     name: string;
     price: number;
-    supportsHalf: boolean; // Flag to check if item supports half portion
+    supportsHalf?: boolean; // Support both supportsHalf and supportshalf
+    supportshalf?: boolean;
   };
   onAddToCart: (item: any, isHalf: boolean) => void;
 }
 
 const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
+  // Support both property names for backward compatibility
+  const supportsHalfPortion = item.supportsHalf || item.supportshalf || false;
   const [isHalf, setIsHalf] = useState(false);
   
   const handleAddToCart = () => {
@@ -38,7 +41,7 @@ const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
           </div>
           
           {/* Half portion toggle - only shown if item supports half portions */}
-          {item.supportsHalf && (
+          {supportsHalfPortion && (
             <div className="flex items-center space-x-2 mt-2">
               <Switch
                 id={`half-toggle-${item.id}`}
