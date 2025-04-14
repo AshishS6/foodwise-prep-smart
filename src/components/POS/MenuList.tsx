@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlusCircle, Upload, Download } from "lucide-react";
@@ -26,6 +27,7 @@ interface MenuListProps {
 
 const MenuList = ({ onAddToCart }: MenuListProps) => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   // New menu item state with support for half pricing
   const [newMenuItem, setNewMenuItem] = useState({
@@ -36,7 +38,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
   
   // File upload state
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [parsedItems, setParsedItems] = useState<{name: string, price: number}[]>([]);
+  const [parsedItems, setParsedItems] = useState<{name: string, price: number, supportsHalf: boolean}[]>([]);
   
   // Fetch menu items
   const { data: menuItems, isLoading } = useQuery({

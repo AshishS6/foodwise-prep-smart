@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import MenuList from "./MenuList";
 import OrderList from "./OrderList";
 
@@ -21,6 +21,7 @@ export type CartItem = {
 const POSContainer = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);

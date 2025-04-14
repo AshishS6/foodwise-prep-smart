@@ -35,16 +35,19 @@ export type Database = {
           id: number
           name: string
           price: number
+          supportshalf: boolean | null
         }
         Insert: {
           id?: number
           name: string
           price: number
+          supportshalf?: boolean | null
         }
         Update: {
           id?: number
           name?: string
           price?: number
+          supportshalf?: boolean | null
         }
         Relationships: []
       }

@@ -1,20 +1,34 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, ChefHat, ScrollText, ShoppingCart, Package, ArrowRight } from "lucide-react";
+import { 
+  BarChart3, 
+  ChefHat, 
+  ScrollText, 
+  ShoppingCart, 
+  Package, 
+  ArrowRight, 
+  AlertTriangle, 
+  Calendar 
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const timeZone = "Asia/Kolkata"; // Indian time zone
 
   // Fetch today's sales data
   const { data: todaySales, isLoading: salesLoading } = useQuery({
     queryKey: ['todaySales'],
     queryFn: async () => {
-      // Get today's date at 00:00:00
-      const today = new Date();
+      // Get today's date at 00:00:00 in Indian time zone
+      const today = utcToZonedTime(new Date(), timeZone);
       today.setHours(0, 0, 0, 0);
       
       const { data, error } = await supabase
@@ -67,12 +81,12 @@ const Index = () => {
   const { data: prepPlan, isLoading: prepLoading } = useQuery({
     queryKey: ['tomorrowPrepPlan'],
     queryFn: async () => {
-      // Get tomorrow's date
-      const tomorrow = new Date();
+      // Get tomorrow's date in Indian time zone
+      const tomorrow = utcToZonedTime(new Date(), timeZone);
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
       
-      const tomorrowDateStr = tomorrow.toISOString().split('T')[0];
+      const tomorrowDateStr = format(tomorrow, 'yyyy-MM-dd');
       
       const { data, error } = await supabase
         .from('prepplans')
@@ -152,9 +166,13 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
+        <Card
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => navigate('/inventory')}
+        >
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-medium">Low Stock Alert</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             {ingredientsLoading ? (
@@ -170,9 +188,13 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
+        <Card
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => navigate('/prep-plans')}
+        >
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-medium">Tomorrow's Prep</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {prepLoading ? (
