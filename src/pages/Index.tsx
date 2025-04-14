@@ -1,6 +1,6 @@
 
-import { Button } from "@/components/ui/card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { 
   BarChart3, 
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useAuthStore } from "@/stores/authStore";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Index = () => {
   const navigate = useNavigate();
