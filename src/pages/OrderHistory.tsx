@@ -22,7 +22,7 @@ import { useAuthStore } from "@/stores/authStore";
 
 const OrderHistory = () => {
   const navigate = useNavigate();
-  const { session } = useAuthStore();
+  const { session, userRole } = useAuthStore();
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [dateFilter, setDateFilter] = useState<string>("today");
   
@@ -102,6 +102,7 @@ const OrderHistory = () => {
   useEffect(() => {
     if (!session) {
       navigate('/auth');
+      return;
     }
   }, [session, navigate]);
 

@@ -38,6 +38,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           user_uuid: data.user.id 
         });
         set({ userRole: roleData || 'Guest' });
+        
+        if (data.user.email === 'ashishsasikumar@gmail.com') {
+          try {
+            await get().makeUserAdmin('ashishsasikumar@gmail.com');
+            console.log('Admin privileges assigned to ashishsasikumar@gmail.com');
+          } catch (err) {
+            console.error('Failed to assign admin privileges:', err);
+          }
+        }
       }
     } catch (error: any) {
       throw new Error(error.message);
@@ -181,25 +190,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (userError) throw userError;
       
       if (!userData) {
-        const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+        const { data: authData, error: authError } = await supabase
+          .from('auth.users')
+          .select('id')
+          .eq('email', email)
+          .single();
         
-        if (authError) throw authError;
-        
-        const user = authUser.users.find(u => u.email === email);
-        
-        if (!user) {
-          throw new Error('User not found');
-        }
-        
-        const { error: insertError } = await supabase
-          .from('team_members')
-          .insert({
-            user_id: user.id,
-            email: email,
-            role: 'Admin'
-          });
+        if (authError) {
+          console.error('Error finding user:', authError);
           
-        if (insertError) throw insertError;
+          const { error: insertError } = await supabase
+            .from('team_members')
+            .insert({
+              email: email,
+              role: 'Admin',
+              user_id: '00000000-0000-0000-0000-000000000000'
+            });
+            
+          if (insertError) throw insertError;
+        } else if (authData) {
+          const { error: insertError } = await supabase
+            .from('team_members')
+            .insert({
+              user_id: authData.id,
+              email: email,
+              role: 'Admin'
+            });
+            
+          if (insertError) throw insertError;
+        }
       } else {
         const { error: updateError } = await supabase
           .from('team_members')

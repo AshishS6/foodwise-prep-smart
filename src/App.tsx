@@ -34,6 +34,12 @@ const ProtectedRoute = ({
     return <Navigate to="/auth" replace />;
   }
 
+  // Special case for ashishsasikumar@gmail.com - always allow access
+  const userEmail = session?.user?.email;
+  if (userEmail === 'ashishsasikumar@gmail.com') {
+    return children;
+  }
+
   // If roles are specified and user doesn't have an allowed role, restrict access
   if (allowedRoles.length > 0 && userRole && !allowedRoles.includes(userRole)) {
     return (
