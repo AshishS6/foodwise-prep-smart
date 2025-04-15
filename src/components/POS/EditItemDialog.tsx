@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -25,8 +32,11 @@ interface EditItemDialogProps {
     price: number;
     halfprice?: number;
     supportshalf?: boolean;
+    category?: string;
   };
 }
+
+const categories = ['Main Course', 'Starters', 'Desserts', 'Beverages'] as const;
 
 export default function EditItemDialog({
   isOpen,
@@ -38,6 +48,7 @@ export default function EditItemDialog({
     price: 0,
     supportshalf: false,
     halfprice: 0,
+    category: "Main Course" as typeof categories[number],
   });
   
   const queryClient = useQueryClient();
@@ -50,6 +61,7 @@ export default function EditItemDialog({
         price: item.price,
         supportshalf: item.supportshalf || false,
         halfprice: item.halfprice || item.price / 2,
+        category: (item.category as typeof categories[number]) || "Main Course",
       });
     }
   }, [item]);
@@ -63,7 +75,8 @@ export default function EditItemDialog({
           name: itemData.name,
           price: itemData.price,
           supportshalf: itemData.supportshalf,
-          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null
+          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null,
+          category: itemData.category
         }]);
       
       if (error) throw error;
@@ -85,7 +98,6 @@ export default function EditItemDialog({
   // Update item mutation
   const updateItem = useMutation({
     mutationFn: async () => {
-      // Check if item and item.id exist before proceeding
       if (!item || item.id === undefined) {
         throw new Error("No item ID provided for update");
       }
@@ -94,9 +106,10 @@ export default function EditItemDialog({
         .from('menuitems')
         .update({
           name: itemData.name,
-          price: itemData.price,
+          price: Number(itemData.price),
           supportshalf: itemData.supportshalf,
-          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null
+          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null,
+          category: itemData.category
         })
         .eq('id', item.id);
       
@@ -147,6 +160,27 @@ export default function EditItemDialog({
                 onChange={(e) => setItemData({ ...itemData, name: e.target.value })}
                 className="col-span-3"
               />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category" className="text-right">
+                Category
+              </Label>
+              <Select
+                value={itemData.category}
+                onValueChange={(value) => setItemData({ ...itemData, category: value as typeof categories[number] })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">

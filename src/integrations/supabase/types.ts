@@ -62,6 +62,7 @@ export type Database = {
       }
       menuitems: {
         Row: {
+          category: Database["public"]["Enums"]["menu_category"]
           halfprice: number | null
           id: number
           name: string
@@ -69,6 +70,7 @@ export type Database = {
           supportshalf: boolean | null
         }
         Insert: {
+          category: Database["public"]["Enums"]["menu_category"]
           halfprice?: number | null
           id?: number
           name: string
@@ -76,6 +78,7 @@ export type Database = {
           supportshalf?: boolean | null
         }
         Update: {
+          category?: Database["public"]["Enums"]["menu_category"]
           halfprice?: number | null
           id?: number
           name?: string
@@ -219,7 +222,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      menu_category: "Main Course" | "Starters" | "Desserts" | "Beverages"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -334,6 +337,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      menu_category: ["Main Course", "Starters", "Desserts", "Beverages"],
+    },
   },
 } as const
