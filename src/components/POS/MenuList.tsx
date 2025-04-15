@@ -3,13 +3,14 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Pencil } from "lucide-react";
+import { Search, Plus, Upload, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import EditItemDialog from "./EditItemDialog";
 import PortionTypeSelector from "./PortionTypeSelector";
 import { PortionType } from "@/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 
 interface MenuListProps {
   onAddToCart: (item: any, portionType: PortionType, note?: string) => void;
@@ -30,6 +31,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPortions, setSelectedPortions] = useState<Record<number, PortionType>>({});
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -127,21 +129,31 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-grow">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search menu items..."
             value={localSearch}
             onChange={handleSearchChange}
-            className="pl-9 w-full"
+            className="pl-9 pr-3 w-full"
           />
         </div>
-        <Button onClick={handleAddNewItem} className="shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleAddNewItem}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Upload className="h-4 w-4 mr-2" />
+                Import Items
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+        </div>
       </div>
 
       <div className="flex overflow-x-auto gap-2 pb-2">
