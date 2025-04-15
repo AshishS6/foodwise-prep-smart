@@ -11,7 +11,14 @@ import { toast } from "@/hooks/use-toast";
 import EditItemDialog from "./EditItemDialog";
 import PortionTypeSelector from "./PortionTypeSelector";
 import { PortionType } from "@/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogTrigger 
+} from "@/components/ui/dialog";
 
 interface MenuListProps {
   onAddToCart: (item: any, portionType: PortionType, note?: string) => void;
@@ -79,29 +86,63 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   // Add mutation for importing menu items
   const importMenuItems = useMutation({
     mutationFn: async (items: any[]) => {
+      // Transform items to include proper defaults and format for Supabase
+      const formattedItems = items.map(item => {
+        const unit = item.unit || 'plate';
+        const price = parseFloat(item.price) || 0;
+        const supportshalf = item.supportshalf === true || item.supportshalf?.toString().toUpperCase() === 'TRUE';
+        const halfprice = parseFloat(item.halfprice) || 0;
+        
+        // Create portions array
+        const portions = [{
+          label: 'Full',
+          price: price,
+          unit: unit,
+          multiplier: 1
+        }];
+        
+        if (supportshalf) {
+          portions.push({
+            label: 'Half',
+            price: halfprice,
+            unit: unit,
+            multiplier: 0.5
+          });
+        }
+
+        return {
+          name: item.name,
+          price: price,
+          category: item.category || 'Main Course',
+          supportshalf: supportshalf,
+          halfprice: halfprice,
+          portions: portions
+        };
+      });
+
       const { data, error } = await supabase
         .from('menuitems')
-        .insert(items);
+        .insert(formattedItems);
       
       if (error) throw error;
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({
         title: "Items Imported Successfully",
-        description: `${importedItems.length} menu items have been added to your menu`,
-        variant: "default",
-        className: "bg-green-50 border-green-200"
+        description: `${variables.length} menu items have been added to your menu`,
+        variant: "default"
       });
       setImportedItems([]);
       setImportDialogOpen(false);
     },
     onError: (error) => {
+      console.error("Import error:", error);
       toast({
         title: "Error Importing Items",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive"
       });
     }
@@ -180,7 +221,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     toast({
       title: "Template Downloaded",
       description: "Fill the template with your menu items and upload it back",
-      className: "bg-green-50 border-green-200"
+      variant: "default"
     });
   };
 
@@ -190,50 +231,59 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      const rows = text.split('\n').map(row => row.split(','));
-      const headers = rows[0].map(header => header.toLowerCase().trim());
-      
-      // Skip the header row and empty rows
-      const items = rows.slice(1)
-        .filter(row => row.length > 1 && row[0].trim() !== '')
-        .map(row => {
-          const item: any = {};
-          headers.forEach((header, index) => {
-            if (index < row.length) {
-              const value = row[index]?.trim();
-              
-              if (header === 'supporthalf' || header === 'supportshalf') {
-                item['supportshalf'] = value.toUpperCase() === 'TRUE';
-              } else if (header === 'price' || header === 'halfprice') {
-                item[header] = value ? parseFloat(value) : 0;
-              } else {
-                item[header] = value;
+      try {
+        const text = e.target?.result as string;
+        const rows = text.split('\n').map(row => row.split(','));
+        const headers = rows[0].map(header => header.toLowerCase().trim());
+        
+        // Skip the header row and empty rows
+        const items = rows.slice(1)
+          .filter(row => row.length > 1 && row[0].trim() !== '')
+          .map(row => {
+            const item: any = {};
+            headers.forEach((header, index) => {
+              if (index < row.length) {
+                const value = row[index]?.trim();
+                
+                if (header === 'supporthalf' || header === 'supportshalf') {
+                  item['supportshalf'] = value.toUpperCase() === 'TRUE';
+                } else if (header === 'price' || header === 'halfprice') {
+                  item[header] = value ? parseFloat(value) : 0;
+                } else {
+                  item[header] = value;
+                }
               }
-            }
+            });
+            return item;
           });
-          return item;
-        });
 
-      // Check for existing items
-      const existingItems = menuItems || [];
-      const duplicates = items.filter(newItem => 
-        existingItems.some(existingItem => 
-          existingItem.name.toLowerCase() === newItem.name.toLowerCase()
-        )
-      );
+        // Check for existing items
+        const existingItems = menuItems || [];
+        const duplicates = items.filter(newItem => 
+          existingItems.some(existingItem => 
+            existingItem.name.toLowerCase() === newItem.name.toLowerCase()
+          )
+        );
 
-      if (duplicates.length > 0) {
+        if (duplicates.length > 0) {
+          toast({
+            title: "Error: Duplicate Items",
+            description: `The following items already exist: ${duplicates.map(d => d.name).join(', ')}`,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        setImportedItems(items);
+        importMenuItems.mutate(items);
+      } catch (err) {
+        console.error("CSV processing error:", err);
         toast({
-          title: "Error: Duplicate Items",
-          description: `The following items already exist: ${duplicates.map(d => d.name).join(', ')}`,
+          title: "Error Processing CSV",
+          description: err instanceof Error ? err.message : "Failed to process the CSV file",
           variant: "destructive"
         });
-        return;
       }
-
-      setImportedItems(items);
-      importMenuItems.mutate(items);
     };
     reader.readAsText(file);
   };

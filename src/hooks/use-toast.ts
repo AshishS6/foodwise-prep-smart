@@ -145,8 +145,11 @@ function toast({ ...props }: Toast) {
 
   // Add default styling based on variant
   let className = props.className || "";
+  
   if (props.variant === "default" && !props.className?.includes("bg-")) {
-    className += " bg-green-50 border-green-200";
+    className += " bg-green-50 border-green-200 text-green-800";
+  } else if (props.variant === "destructive" && !props.className?.includes("bg-")) {
+    className += " bg-red-50 border-red-200 text-red-800";
   }
 
   const update = (props: ToasterToast) =>
