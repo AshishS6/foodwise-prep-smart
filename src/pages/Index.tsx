@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { toZonedTime } from "date-fns-tz"; // Updated from utcToZonedTime
 import { useAuthStore } from "@/stores/authStore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -35,7 +36,7 @@ const Index = () => {
     queryKey: ['todaySales'],
     queryFn: async () => {
       try {
-        const today = toZonedTime(new Date(), timeZone);
+        const today = toZonedTime(new Date(), timeZone); // Updated from utcToZonedTime
         today.setHours(0, 0, 0, 0);
         
         const { data, error } = await supabase
@@ -89,7 +90,7 @@ const Index = () => {
     queryKey: ['tomorrowPrepPlan'],
     queryFn: async () => {
       try {
-        const tomorrow = toZonedTime(new Date(), timeZone);
+        const tomorrow = toZonedTime(new Date(), timeZone); // Updated from utcToZonedTime
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(0, 0, 0, 0);
         

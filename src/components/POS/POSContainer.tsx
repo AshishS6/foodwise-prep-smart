@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BarChart3, AlertCircle, Split, FileText, Upload, Download } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/authStore";
@@ -21,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { utcToZonedTime } from "date-fns-tz";
+import { toZonedTime } from "date-fns-tz";
 
 type MenuCategory = "Main Course" | "Starters" | "Desserts" | "Beverages";
 
@@ -29,6 +28,7 @@ const POSContainer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [importName, setImportName] = useState("");
   const [importPrice, setImportPrice] = useState("");
@@ -132,7 +132,6 @@ const POSContainer = () => {
     } else {
       submitOrder.mutate(cart, {
         onSuccess: (data) => {
-          // Clear cart after successful submission
           setCart([]);
           setBillGroups([1]);
           setCurrentBillGroup(1);
@@ -168,7 +167,6 @@ const POSContainer = () => {
     } else {
       submitOrder.mutate(currentGroupItems, {
         onSuccess: (data) => {
-          // Remove the processed items from cart
           setCart(cart.filter(item => item.billGroup !== currentBillGroup));
           
           if (billGroups.length > 1) {
@@ -206,7 +204,6 @@ const POSContainer = () => {
   };
 
   useEffect(() => {
-    // Update portions when price changes
     const price = parseFloat(importPrice) || 0;
     const updatedPortions: PortionType[] = [
       { label: 'Full', price: price, unit: 'plate', multiplier: 1 }
@@ -268,7 +265,6 @@ const POSContainer = () => {
       setHalfPortionPrice("");
       setImportDialogOpen(false);
       
-      // Refresh menu items
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
     } catch (error: any) {
       toast({
