@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import EditItemDialog from "./EditItemDialog";
-import PortionTypeSelector, { PortionType } from "./PortionTypeSelector";
+import PortionTypeSelector from "./PortionTypeSelector";
+import { PortionType } from "@/types";
 
 interface MenuListProps {
   onAddToCart: (item: any, portionType: PortionType, note?: string) => void;
@@ -33,7 +33,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
 
   const queryClient = useQueryClient();
 
-  // Fetch menu items
   const { data: menuItems, isLoading, error } = useQuery({
     queryKey: ['menuItems'],
     queryFn: async () => {
@@ -44,11 +43,9 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
       
       if (error) throw error;
       
-      // Initialize default portion types for each menu item
       const itemsWithPortions = data?.map(item => {
         const portions = [];
         
-        // Default "Full" portion
         portions.push({
           label: "Full",
           price: item.price,
@@ -56,7 +53,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
           unit: "Plate"
         });
         
-        // Add "Half" portion if supported
         if (item.supportshalf) {
           portions.push({
             label: "Half",
@@ -66,7 +62,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
           });
         }
         
-        // For beverages category, add glass and liter options
         if (item.category === "Beverages") {
           portions.push(
             {
@@ -106,7 +101,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     }
   });
 
-  // Handle search input change and update parent component
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLocalSearch(value);
@@ -116,7 +110,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     }
   };
 
-  // Filter menu items based on search term and category
   const filteredItems = menuItems?.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(localSearch.toLowerCase());
     const matchesCategory = activeCategory === "All Items" || item.category === activeCategory;
@@ -163,7 +156,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        {/* Search bar */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -180,7 +172,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
         </Button>
       </div>
 
-      {/* Category filter */}
       <div className="flex overflow-x-auto gap-2 pb-2">
         {categories.map((category) => (
           <Button
@@ -195,7 +186,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
         ))}
       </div>
 
-      {/* Menu items grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
@@ -242,7 +232,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
                     </Button>
                   </div>
                   
-                  {/* Portion Type Selector */}
                   <PortionTypeSelector
                     portions={item.portions}
                     selectedPortion={selectedPortions[item.id] || item.portions[0]}
@@ -264,7 +253,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
         </div>
       )}
 
-      {/* Edit/Add Item Dialog */}
       <EditItemDialog
         isOpen={isDialogOpen}
         onClose={handleCloseDialog}

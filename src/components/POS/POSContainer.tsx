@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PortionType } from "./PortionTypeSelector";
+import { PortionType } from "@/types";
 
 export type CartItem = {
   menuItemId: number;
