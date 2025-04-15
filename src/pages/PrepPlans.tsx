@@ -64,7 +64,7 @@ const PrepPlans = () => {
         return [];
       }
       
-      return data;
+      return data || [];  // Ensure we always return an array
     }
   });
 
@@ -85,12 +85,12 @@ const PrepPlans = () => {
         return [];
       }
       
-      return data;
+      return data || []; // Ensure we always return an array
     }
   });
 
-  // Calculate sales data
-  const salesByItem = todayOrders ? todayOrders.reduce((acc: Record<number, number>, order: any) => {
+  // Calculate sales data - safely check if todayOrders is an array
+  const salesByItem = Array.isArray(todayOrders) ? todayOrders.reduce((acc: Record<number, number>, order: any) => {
     if (order.items && Array.isArray(order.items)) {
       order.items.forEach((item: any) => {
         if (typeof item === 'object' && item !== null && 'menuItemId' in item && 'quantity' in item) {
@@ -131,7 +131,7 @@ const PrepPlans = () => {
         setActuals(newActuals);
       }
       
-      return data;
+      return data || [];  // Ensure we always return an array
     }
   });
 
@@ -148,7 +148,7 @@ const PrepPlans = () => {
       
       // For each menu item, create a prep plan
       const plans = [];
-      if (menuItems) {
+      if (menuItems && Array.isArray(menuItems)) {
         for (const item of menuItems) {
           // Calculate suggested quantity - this is a simple algorithm
           // In real life, you might use more complex forecasting
@@ -172,7 +172,7 @@ const PrepPlans = () => {
       
       if (error) throw new Error(error.message);
       
-      return data;
+      return data || []; // Ensure we always return an array
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prepPlans'] });
@@ -232,10 +232,10 @@ const PrepPlans = () => {
     }));
   };
 
-  // Calculate stat cards
-  const totalSuggestedPrep = prepPlans?.reduce((sum, plan) => sum + plan.suggested_qty, 0) || 0;
-  const totalActualPrep = prepPlans?.reduce((sum, plan) => sum + (actuals[plan.id]?.actual_prepared || 0), 0) || 0;
-  const totalLeftovers = prepPlans?.reduce((sum, plan) => sum + (actuals[plan.id]?.leftovers || 0), 0) || 0;
+  // Calculate stat cards - safely using optional chaining and default to 0 if array is undefined
+  const totalSuggestedPrep = Array.isArray(prepPlans) ? prepPlans.reduce((sum, plan) => sum + plan.suggested_qty, 0) : 0;
+  const totalActualPrep = Array.isArray(prepPlans) ? prepPlans.reduce((sum, plan) => sum + (actuals[plan.id]?.actual_prepared || 0), 0) : 0;
+  const totalLeftovers = Array.isArray(prepPlans) ? prepPlans.reduce((sum, plan) => sum + (actuals[plan.id]?.leftovers || 0), 0) : 0;
 
   return (
     <div className="container mx-auto p-4">
