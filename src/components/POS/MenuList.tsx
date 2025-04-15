@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,6 +76,39 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     }
   });
 
+  // Add mutation for importing menu items
+  const importMenuItems = useMutation({
+    mutationFn: async (items: any[]) => {
+      const { data, error } = await supabase
+        .from('menuitems')
+        .insert(items);
+      
+      if (error) throw error;
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['menuItems'] });
+      toast({
+        title: "Items Imported Successfully",
+        description: `${importedItems.length} menu items have been added to your menu`,
+        variant: "default",
+        className: "bg-green-50 border-green-200"
+      });
+      setImportedItems([]);
+      setImportDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error Importing Items",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const [importedItems, setImportedItems] = useState<any[]>([]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLocalSearch(value);
@@ -146,6 +180,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     toast({
       title: "Template Downloaded",
       description: "Fill the template with your menu items and upload it back",
+      className: "bg-green-50 border-green-200"
     });
   };
 
@@ -157,15 +192,30 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     reader.onload = async (e) => {
       const text = e.target?.result as string;
       const rows = text.split('\n').map(row => row.split(','));
-      const headers = rows[0];
-      const items = rows.slice(1).map(row => {
-        const item: any = {};
-        headers.forEach((header, index) => {
-          item[header.toLowerCase().trim()] = row[index]?.trim();
+      const headers = rows[0].map(header => header.toLowerCase().trim());
+      
+      // Skip the header row and empty rows
+      const items = rows.slice(1)
+        .filter(row => row.length > 1 && row[0].trim() !== '')
+        .map(row => {
+          const item: any = {};
+          headers.forEach((header, index) => {
+            if (index < row.length) {
+              const value = row[index]?.trim();
+              
+              if (header === 'supporthalf' || header === 'supportshalf') {
+                item['supportshalf'] = value.toUpperCase() === 'TRUE';
+              } else if (header === 'price' || header === 'halfprice') {
+                item[header] = value ? parseFloat(value) : 0;
+              } else {
+                item[header] = value;
+              }
+            }
+          });
+          return item;
         });
-        return item;
-      });
 
+      // Check for existing items
       const existingItems = menuItems || [];
       const duplicates = items.filter(newItem => 
         existingItems.some(existingItem => 
@@ -182,10 +232,8 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
         return;
       }
 
-      toast({
-        title: "File received",
-        description: "CSV processing will be implemented soon",
-      });
+      setImportedItems(items);
+      importMenuItems.mutate(items);
     };
     reader.readAsText(file);
   };
@@ -212,7 +260,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
             <Plus className="h-4 w-4 mr-2" />
             Add Item
           </Button>
-          <Dialog>
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Upload className="h-4 w-4 mr-2" />
@@ -224,15 +272,16 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
                 <DialogTitle>Import Menu Items</DialogTitle>
                 <DialogDescription>
                   Follow these steps to import your menu items:
-                  <ol className="list-decimal list-inside mt-2 space-y-2">
-                    <li>Download the CSV template</li>
-                    <li>Fill in your menu items in the template</li>
-                    <li>Save the file as CSV</li>
-                    <li>Upload the filled template</li>
-                  </ol>
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 mt-2">
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>Download the CSV template</li>
+                  <li>Fill in your menu items in the template</li>
+                  <li>Save the file as CSV</li>
+                  <li>Upload the filled template</li>
+                </ol>
+                
                 <Button
                   variant="outline"
                   onClick={generateCsvTemplate}
@@ -241,6 +290,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
                   <Download className="h-4 w-4 mr-2" />
                   Download Template
                 </Button>
+                
                 <div className="relative">
                   <input
                     type="file"

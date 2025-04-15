@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -142,6 +143,12 @@ type Toast = Omit<ToasterToast, "id">
 function toast({ ...props }: Toast) {
   const id = genId()
 
+  // Add default styling based on variant
+  let className = props.className || "";
+  if (props.variant === "default" && !props.className?.includes("bg-")) {
+    className += " bg-green-50 border-green-200";
+  }
+
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
@@ -154,6 +161,7 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
+      className,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
