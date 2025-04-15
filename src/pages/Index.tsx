@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +23,9 @@ import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useAuthStore } from "@/stores/authStore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/authStore";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -169,6 +173,7 @@ const Index = () => {
     navigate('/analytics');
   };
 
+  // Add Team Management to the analytics overview section
   return (
     <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center py-6">
@@ -280,24 +285,26 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card
-            className="cursor-pointer hover:bg-indigo-50 transition-colors md:col-span-3"
-            onClick={handleAnalyticsClick}
-          >
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-medium text-indigo-700">Analytics Overview</CardTitle>
-              <BarChart3 className="h-4 w-4 text-indigo-500" />
-            </CardHeader>
-            <CardContent className="flex items-center justify-center p-4">
-              <Button 
-                variant="default" 
-                className="bg-indigo-500 hover:bg-indigo-600"
-                onClick={handleAnalyticsClick}
-              >
-                View Detailed Analytics
-              </Button>
-            </CardContent>
-          </Card>
+          {userRole === 'Admin' && (
+            <Card
+              className="cursor-pointer hover:bg-indigo-50 transition-colors"
+              onClick={() => navigate('/team-management')}
+            >
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-lg font-medium text-indigo-700">Team Management</CardTitle>
+                <UserPlus className="h-4 w-4 text-indigo-500" />
+              </CardHeader>
+              <CardContent className="flex items-center justify-center p-4">
+                <Button 
+                  variant="default" 
+                  className="bg-indigo-500 hover:bg-indigo-600"
+                  onClick={() => navigate('/team-management')}
+                >
+                  Manage Team
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
