@@ -179,6 +179,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
+          name: string | null
           role: string
           updated_at: string | null
           user_id: string
@@ -187,6 +188,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id?: string
+          name?: string | null
           role: string
           updated_at?: string | null
           user_id: string
@@ -195,6 +197,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
+          name?: string | null
           role?: string
           updated_at?: string | null
           user_id?: string

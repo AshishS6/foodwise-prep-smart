@@ -1,4 +1,3 @@
-
 export type PortionType = {
   label: string;     // "Full", "Half", "Glass", "1L", "500ml", "Piece"
   price: number;     // Price for this portion
@@ -26,4 +25,6 @@ export type TeamMember = {
   name: string | null;
   role: string;
   user_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 };

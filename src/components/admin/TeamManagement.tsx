@@ -51,7 +51,14 @@ export function TeamManagement() {
         .order("email");
 
       if (error) throw error;
-      setTeamMembers(data as TeamMember[]);
+      
+      // Cast data to TeamMember[] and ensure name is handled
+      const members = (data || []).map(member => ({
+        ...member,
+        name: member.name || member.email.split('@')[0]
+      })) as TeamMember[];
+
+      setTeamMembers(members);
     } catch (error: any) {
       console.error("Error fetching team members:", error);
       toast({

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { 
   BarChart3, 
   ChefHat, 
@@ -25,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, userRole, userName } = useAuthStore();
+  const { user, userRole, userName, session } = useAuthStore();
   const timeZone = "Asia/Kolkata";
 
   // Query for today's sales data
