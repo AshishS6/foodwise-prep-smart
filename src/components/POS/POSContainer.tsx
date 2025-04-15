@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,6 @@ const POSContainer = () => {
   const [showMissingRecipeAlert, setShowMissingRecipeAlert] = useState(false);
   const [isValidatingOrder, setIsValidatingOrder] = useState(false);
 
-  // Log component initialization
   useEffect(() => {
     console.log("POSContainer initialized");
     return () => {
@@ -100,7 +98,6 @@ const POSContainer = () => {
     }
   };
 
-  // Properly attach and detach event listeners
   useEffect(() => {
     console.log("Setting up keyboard event listeners");
     window.addEventListener('keydown', handleKeyDown);
@@ -109,7 +106,7 @@ const POSContainer = () => {
       console.log("Cleaning up keyboard event listeners");
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [billGroups]); // Make sure to re-attach when billGroups changes
+  }, [billGroups]);
 
   const logActivity = async (action: string, entityType: string, entityId: string, details: any = {}) => {
     try {
@@ -277,7 +274,7 @@ const POSContainer = () => {
         const groupedBills = billGroups.map(groupId => {
           const groupItems = cart.filter(item => item.billGroup === groupId);
           const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-          return { items: groupItems, total: groupTotal };
+          return { items: groupItems, total: groupTotal, groupId };
         }).filter(group => group.items.length > 0);
         
         for (const bill of groupedBills) {
@@ -310,7 +307,7 @@ const POSContainer = () => {
     },
     onSuccess: () => {
       toast({ 
-        title: "Orders submitted successfully",
+        title: "All orders submitted successfully",
         variant: "default"
       });
       setCart([]);
@@ -584,26 +581,24 @@ const POSContainer = () => {
               Missing Recipe Data
             </AlertDialogTitle>
             <AlertDialogDescription>
-              <p>The following items do not have recipe data defined:</p>
-              <ul className="mt-2 list-disc pl-5">
-                {missingRecipes.map((item, index) => (
-                  <li key={index} className="mb-1">{item}</li>
-                ))}
-              </ul>
-              <p className="mt-2">
-                Without recipe data, inventory stock will not be automatically reduced.
-                Do you want to continue anyway?
-              </p>
+              <div>
+                <p>The following items do not have recipe data defined:</p>
+                <ul className="mt-2 list-disc pl-5">
+                  {missingRecipes.map((item, index) => (
+                    <li key={index} className="mb-1">{item}</li>
+                  ))}
+                </ul>
+                <p className="mt-2">
+                  Without recipe data, inventory stock will not be automatically reduced.
+                  Do you want to continue anyway?
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
-              if (currentBillGroup !== billGroups[0]) {
-                submitBillGroup.mutate(currentBillGroup);
-              } else {
-                submitOrder.mutate();
-              }
+              submitOrder.mutate();
             }}>
               Continue Anyway
             </AlertDialogAction>
