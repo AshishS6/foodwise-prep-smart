@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -90,6 +89,14 @@ const POSContainer = () => {
       addBillGroup();
     }
   };
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [billGroups]);
 
   const logActivity = async (action: string, entityType: string, entityId: string, details: any = {}) => {
     try {
@@ -416,7 +423,15 @@ const POSContainer = () => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/analytics')}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-2" 
+                  onClick={() => {
+                    console.log("Navigating to analytics page");
+                    navigate('/analytics');
+                  }}
+                >
                   <BarChart3 className="h-4 w-4 mr-1" />
                   Analytics
                 </Button>
