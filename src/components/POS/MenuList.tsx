@@ -3,7 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Upload, Pencil } from "lucide-react";
+import { Search, Plus, Upload, Pencil, Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -149,6 +149,16 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     });
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      toast({
+        title: "File received",
+        description: "CSV processing will be implemented soon",
+      });
+    }
+  };
+
   if (error) {
     return <p className="text-destructive">Error loading menu items: {error.message}</p>;
   }
@@ -173,7 +183,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
           </Button>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" onClick={generateCsvTemplate}>
+              <Button variant="outline">
                 <Upload className="h-4 w-4 mr-2" />
                 Import Items
               </Button>
@@ -187,21 +197,37 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
                     <li>Download the CSV template</li>
                     <li>Fill in your menu items in the template</li>
                     <li>Save the file as CSV</li>
-                    <li>Upload the filled template (coming soon)</li>
+                    <li>Upload the filled template</li>
                   </ol>
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
+              <div className="flex flex-col gap-4">
                 <Button
                   variant="outline"
                   onClick={generateCsvTemplate}
-                  type="button"
                   className="w-full"
                 >
-                  <Upload className="h-4 w-4 mr-1" />
+                  <Download className="h-4 w-4 mr-2" />
                   Download Template
                 </Button>
-              </DialogFooter>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="csv-upload"
+                  />
+                  <Button
+                    variant="default"
+                    className="w-full"
+                    onClick={() => document.getElementById('csv-upload')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload CSV File
+                  </Button>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
