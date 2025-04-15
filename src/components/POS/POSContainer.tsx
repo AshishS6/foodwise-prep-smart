@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, BarChart3, AlertCircle } from "lucide-react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,6 +12,16 @@ import MenuList from "./MenuList";
 import OrderList from "./OrderList";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Define cart item type that includes variant information
 export type CartItem = {
@@ -32,9 +42,30 @@ const POSContainer = () => {
   
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
+  // Alert state for items with missing recipes
+  const [missingRecipes, setMissingRecipes] = useState<string[]>([]);
+  const [showMissingRecipeAlert, setShowMissingRecipeAlert] = useState(false);
+  const [isValidatingOrder, setIsValidatingOrder] = useState(false);
 
   // Calculate total
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  // Fetch all recipes for validation
+  const { data: recipes } = useQuery({
+    queryKey: ['allRecipes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*');
+      
+      if (error) {
+        console.error('Error fetching recipes:', error);
+        return [];
+      }
+      
+      return data || [];
+    }
+  });
 
   // Add item to cart
   const addToCart = (item: any, isHalf: boolean = false) => {
@@ -98,6 +129,51 @@ const POSContainer = () => {
       }
       return item;
     }));
+  };
+
+  // Check if all menu items in cart have recipes defined
+  const validateOrderRecipes = async () => {
+    if (!recipes || recipes.length === 0 || cart.length === 0) return true;
+    
+    const missingRecipeItems: string[] = [];
+    
+    for (const item of cart) {
+      // Check if this menu item has any recipes defined
+      const hasRecipes = recipes.some(recipe => recipe.menuitemid === item.menuItemId);
+      
+      if (!hasRecipes) {
+        missingRecipeItems.push(item.name);
+      }
+    }
+    
+    if (missingRecipeItems.length > 0) {
+      setMissingRecipes(missingRecipeItems);
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Handle order validation before submission
+  const handleOrderSubmit = async () => {
+    if (cart.length === 0) {
+      toast({
+        title: "Empty cart",
+        description: "Please add items to your cart before submitting",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsValidatingOrder(true);
+    const isValid = await validateOrderRecipes();
+    setIsValidatingOrder(false);
+    
+    if (!isValid) {
+      setShowMissingRecipeAlert(true);
+    } else {
+      submitOrder.mutate();
+    }
   };
 
   // Submit order mutation
@@ -222,11 +298,41 @@ const POSContainer = () => {
             onUpdateQuantity={updateQuantity}
             onSetQuantity={setItemQuantity}
             onRemoveItem={removeFromCart}
-            onSubmitOrder={() => submitOrder.mutate()}
-            isSubmitting={submitOrder.isPending}
+            onSubmitOrder={handleOrderSubmit}
+            isSubmitting={submitOrder.isPending || isValidatingOrder}
           />
         </div>
       </div>
+
+      {/* Alert Dialog for Missing Recipes */}
+      <AlertDialog open={showMissingRecipeAlert} onOpenChange={setShowMissingRecipeAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
+              Missing Recipe Data
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <p>The following items do not have recipe data defined:</p>
+              <ul className="mt-2 list-disc pl-5">
+                {missingRecipes.map((item, index) => (
+                  <li key={index} className="mb-1">{item}</li>
+                ))}
+              </ul>
+              <p className="mt-2">
+                Without recipe data, inventory stock will not be automatically reduced.
+                Do you want to continue anyway?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => submitOrder.mutate()}>
+              Continue Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
