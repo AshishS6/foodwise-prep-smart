@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsItem, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Define cart item type that includes variant and note information
 export type CartItem = {
   menuItemId: number;
   name: string;
@@ -41,39 +39,30 @@ const POSContainer = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user, userRole } = useAuthStore();
-  const timeZone = "Asia/Kolkata"; // Set timezone to IST
-  
-  // Cart state with split bill support
+  const timeZone = "Asia/Kolkata";
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [currentBillGroup, setCurrentBillGroup] = useState<number>(1);
   const [billGroups, setBillGroups] = useState<number[]>([1]);
-  
-  // Search state
   const [searchTerm, setSearchTerm] = useState<string>("");
-  
-  // Alert state for items with missing recipes
   const [missingRecipes, setMissingRecipes] = useState<string[]>([]);
   const [showMissingRecipeAlert, setShowMissingRecipeAlert] = useState(false);
   const [isValidatingOrder, setIsValidatingOrder] = useState(false);
 
-  // Calculate total for current bill group
   const currentGroupTotal = cart
     .filter(item => item.billGroup === currentBillGroup)
     .reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Calculate overall total
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Add a new bill group
   const addBillGroup = () => {
     const newGroup = Math.max(...billGroups) + 1;
     setBillGroups([...billGroups, newGroup]);
     setCurrentBillGroup(newGroup);
   };
 
-  // Delete a bill group and move its items to another group or remove them
   const deleteBillGroup = (groupToDelete: number) => {
-    if (billGroups.length <= 1) return; // Don't delete the last group
+    if (billGroups.length <= 1) return;
     
     const updatedCart = cart.filter(item => item.billGroup !== groupToDelete);
     setCart(updatedCart);
@@ -81,37 +70,39 @@ const POSContainer = () => {
     const updatedGroups = billGroups.filter(g => g !== groupToDelete);
     setBillGroups(updatedGroups);
     
-    // Set current group to the first available group
     setCurrentBillGroup(updatedGroups[0]);
   };
 
-  // Process keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only process if not typing in an input field
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-        return;
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    if (e.key >= '1' && e.key <= '9') {
+      const groupIndex = parseInt(e.key) - 1;
+      if (groupIndex < billGroups.length) {
+        setCurrentBillGroup(billGroups[groupIndex]);
       }
+    }
 
-      // Number keys 1-9 for switching bill groups
-      if (e.key >= '1' && e.key <= '9') {
-        const groupIndex = parseInt(e.key) - 1;
-        if (groupIndex < billGroups.length) {
-          setCurrentBillGroup(billGroups[groupIndex]);
-        }
-      }
+    if (e.key === '+') {
+      addBillGroup();
+    }
+  };
 
-      // Add new bill group with '+'
-      if (e.key === '+') {
-        addBillGroup();
-      }
-    };
+  const logActivity = async (action: string, entityType: string, entityId: string, details: any = {}) => {
+    try {
+      await supabase.rpc('log_activity', {
+        action,
+        entity_type: entityType,
+        entity_id: entityId,
+        details
+      });
+    } catch (error) {
+      console.error('Failed to log activity:', error);
+    }
+  };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [billGroups]);
-
-  // Fetch all recipes for validation
   const { data: recipes } = useQuery({
     queryKey: ['allRecipes'],
     queryFn: async () => {
@@ -128,13 +119,10 @@ const POSContainer = () => {
     }
   });
 
-  // Add item to cart
   const addToCart = (item: any, isHalf: boolean = false, note: string = '') => {
-    // Use specific half price if available, otherwise calculate as half of full price
     const price = isHalf ? (item.halfprice || item.price / 2) : item.price;
     const itemName = isHalf ? `${item.name} (Half)` : item.name;
     
-    // Check if this specific item variant already exists in cart and current bill group
     const existingItemIndex = cart.findIndex(cartItem => 
       cartItem.menuItemId === item.id && 
       cartItem.isHalf === isHalf && 
@@ -143,7 +131,6 @@ const POSContainer = () => {
     );
     
     if (existingItemIndex !== -1) {
-      // Update the quantity of the existing item
       const updatedCart = [...cart];
       updatedCart[existingItemIndex] = {
         ...updatedCart[existingItemIndex],
@@ -151,7 +138,6 @@ const POSContainer = () => {
       };
       setCart(updatedCart);
     } else {
-      // Add as a new item
       setCart([...cart, {
         menuItemId: item.id,
         name: itemName,
@@ -164,13 +150,11 @@ const POSContainer = () => {
     }
   };
 
-  // Update item quantity in cart
   const updateQuantity = (index: number, change: number) => {
     const updatedCart = [...cart];
     const newQuantity = Math.max(0, updatedCart[index].quantity + change);
     
     if (newQuantity === 0) {
-      // Remove the item if quantity becomes zero
       updatedCart.splice(index, 1);
     } else {
       updatedCart[index] = { ...updatedCart[index], quantity: newQuantity };
@@ -179,21 +163,18 @@ const POSContainer = () => {
     setCart(updatedCart);
   };
 
-  // Remove item from cart
   const removeFromCart = (index: number) => {
     const updatedCart = [...cart];
     updatedCart.splice(index, 1);
     setCart(updatedCart);
   };
 
-  // Update item note in cart
   const updateNote = (index: number, note: string) => {
     const updatedCart = [...cart];
     updatedCart[index] = { ...updatedCart[index], note };
     setCart(updatedCart);
   };
 
-  // Direct update of item quantity
   const setItemQuantity = (index: number, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(index);
@@ -205,14 +186,12 @@ const POSContainer = () => {
     setCart(updatedCart);
   };
 
-  // Check if all menu items in cart have recipes defined
   const validateOrderRecipes = async () => {
     if (!recipes || recipes.length === 0 || cart.length === 0) return true;
     
     const missingRecipeItems: string[] = [];
     
     for (const item of cart) {
-      // Check if this menu item has any recipes defined
       const hasRecipes = recipes.some(recipe => recipe.menuitemid === item.menuItemId);
       
       if (!hasRecipes) {
@@ -228,7 +207,6 @@ const POSContainer = () => {
     return true;
   };
 
-  // Handle order validation before submission
   const handleOrderSubmit = async () => {
     if (cart.length === 0) {
       toast({
@@ -250,7 +228,6 @@ const POSContainer = () => {
     }
   };
 
-  // Submit current bill group only
   const submitCurrentGroup = async () => {
     const currentGroupItems = cart.filter(item => item.billGroup === currentBillGroup);
     
@@ -270,25 +247,20 @@ const POSContainer = () => {
     if (!isValid) {
       setShowMissingRecipeAlert(true);
     } else {
-      // Submit only current group
       submitBillGroup.mutate(currentBillGroup);
     }
   };
 
-  // Submit order mutation for all items
   const submitOrder = useMutation({
     mutationFn: async () => {
       try {
-        // Group cart items by bill group
         const groupedBills = billGroups.map(groupId => {
           const groupItems = cart.filter(item => item.billGroup === groupId);
           const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           return { items: groupItems, total: groupTotal };
         }).filter(group => group.items.length > 0);
         
-        // Create orders for each bill group
         for (const bill of groupedBills) {
-          // First, create the order
           const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert([{
@@ -300,13 +272,11 @@ const POSContainer = () => {
 
           if (orderError) throw new Error(orderError.message);
           
-          // Log the order creation
           logActivity('create', 'order', orderData?.[0]?.id?.toString(), {
             total: bill.total,
             items: bill.items.length
           });
           
-          // Update ingredient stock based on recipes
           for (const item of bill.items) {
             await updateIngredientStocks(item);
           }
@@ -338,14 +308,12 @@ const POSContainer = () => {
     }
   });
 
-  // Submit single bill group mutation
   const submitBillGroup = useMutation({
     mutationFn: async (groupId: number) => {
       try {
         const groupItems = cart.filter(item => item.billGroup === groupId);
         const groupTotal = groupItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        // First, create the order
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
           .insert([{
@@ -357,13 +325,11 @@ const POSContainer = () => {
 
         if (orderError) throw new Error(orderError.message);
         
-        // Log the order creation
         logActivity('create', 'order', orderData?.[0]?.id?.toString(), {
           total: groupTotal,
           items: groupItems.length
         });
         
-        // Update ingredient stock based on recipes
         for (const item of groupItems) {
           await updateIngredientStocks(item);
         }
@@ -380,15 +346,12 @@ const POSContainer = () => {
         variant: "default"
       });
       
-      // Remove submitted bill group and its items
       setCart(cart.filter(item => item.billGroup !== data.groupId));
       
-      // Update bill groups
       if (billGroups.length > 1) {
         setBillGroups(billGroups.filter(g => g !== data.groupId));
         setCurrentBillGroup(billGroups.filter(g => g !== data.groupId)[0]);
       } else {
-        // Reset to bill group 1 if it was the only group
         setCurrentBillGroup(1);
       }
       
@@ -404,9 +367,7 @@ const POSContainer = () => {
     }
   });
 
-  // Helper function to update ingredient stocks based on recipe
   const updateIngredientStocks = async (item: CartItem) => {
-    // Get recipes for this menu item
     const { data: recipes, error: recipesError } = await supabase
       .from('recipes')
       .select('ingredientid, quantity')
@@ -414,14 +375,11 @@ const POSContainer = () => {
     
     if (recipesError) throw new Error(recipesError.message);
     
-    // Update stock for each ingredient
     if (recipes) {
       for (const recipe of recipes) {
-        // For half items, use half the ingredients
         const multiplier = item.isHalf ? 0.5 : 1;
         const totalUsed = recipe.quantity * item.quantity * multiplier;
         
-        // Use the RPC function to decrement stock
         const { error: updateError } = await supabase.rpc(
           'decrement_stock',
           { 
@@ -451,7 +409,6 @@ const POSContainer = () => {
           <h1 className="text-2xl font-bold">Point of Sale</h1>
         </div>
         
-        {/* User and role info */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">👤 {user?.email} | {userRole}</span>
           
@@ -472,7 +429,6 @@ const POSContainer = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Menu Items */}
         <div className="lg:col-span-2 space-y-4">
           <MenuList 
             onAddToCart={addToCart} 
@@ -481,9 +437,7 @@ const POSContainer = () => {
           />
         </div>
 
-        {/* Order List */}
         <div className="bg-muted/30 rounded-lg p-4 border">
-          {/* Bill Group Tabs */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold">Bill Groups</h2>
@@ -578,7 +532,6 @@ const POSContainer = () => {
             </Tabs>
           </div>
 
-          {/* Complete All Orders button */}
           <div className="mt-4 pt-4 border-t">
             <Button 
               className="w-full" 
@@ -592,7 +545,6 @@ const POSContainer = () => {
         </div>
       </div>
 
-      {/* Alert Dialog for Missing Recipes */}
       <AlertDialog open={showMissingRecipeAlert} onOpenChange={setShowMissingRecipeAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>

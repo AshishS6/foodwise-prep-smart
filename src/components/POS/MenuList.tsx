@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Plus, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import EditItemDialog from "./EditItemDialog";
 
 interface MenuListProps {
   onAddToCart: (item: any, isHalf?: boolean, note?: string) => void;
@@ -23,6 +26,10 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   ]);
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [localSearch, setLocalSearch] = useState(searchTerm);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const queryClient = useQueryClient();
 
   // Fetch menu items
   const { data: menuItems, isLoading, error } = useQuery({
@@ -55,22 +62,48 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     return matchesSearch && matchesCategory;
   });
 
+  const handleAddNewItem = () => {
+    setEditingItem({
+      name: "",
+      price: 0,
+      supportshalf: false,
+      halfprice: 0
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleEditItem = (item: any) => {
+    setEditingItem(item);
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingItem(null);
+  };
+
   if (error) {
     return <p className="text-destructive">Error loading menu items: {error.message}</p>;
   }
 
   return (
     <div className="space-y-4">
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search menu items..."
-          value={localSearch}
-          onChange={handleSearchChange}
-          className="pl-9 w-full"
-        />
+      <div className="flex items-center justify-between gap-4">
+        {/* Search bar */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search menu items..."
+            value={localSearch}
+            onChange={handleSearchChange}
+            className="pl-9 w-full"
+          />
+        </div>
+        <Button onClick={handleAddNewItem} className="shrink-0">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Item
+        </Button>
       </div>
 
       {/* Category filter */}
@@ -116,9 +149,18 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
             filteredItems?.map((item) => (
               <Card key={item.id} className="overflow-hidden hover:border-primary/50 transition-colors">
                 <CardContent className="p-4">
-                  <div className="mb-4">
-                    <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-muted-foreground">₹{item.price.toFixed(2)}</p>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-medium">{item.name}</h3>
+                      <p className="text-muted-foreground">₹{item.price.toFixed(2)}</p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEditItem(item)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="flex justify-between">
                     <Button
@@ -143,6 +185,13 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
           )}
         </div>
       )}
+
+      {/* Edit/Add Item Dialog */}
+      <EditItemDialog
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        item={editingItem}
+      />
     </div>
   );
 };

@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,7 +20,7 @@ interface EditItemDialogProps {
   isOpen: boolean;
   onClose: () => void;
   item: {
-    id: string | number;
+    id?: string | number;
     name: string;
     price: number;
     halfprice?: number;
@@ -34,23 +34,53 @@ export default function EditItemDialog({
   item
 }: EditItemDialogProps) {
   const [itemData, setItemData] = useState({
-    name: item.name,
-    price: item.price,
-    supportshalf: item.supportshalf || false,
-    halfprice: item.halfprice || item.price / 2,
+    name: "",
+    price: 0,
+    supportshalf: false,
+    halfprice: 0,
   });
+  
+  const queryClient = useQueryClient();
   
   // Reset form data when item changes
   useEffect(() => {
-    setItemData({
-      name: item.name,
-      price: item.price,
-      supportshalf: item.supportshalf || false,
-      halfprice: item.halfprice || item.price / 2,
-    });
+    if (item) {
+      setItemData({
+        name: item.name,
+        price: item.price,
+        supportshalf: item.supportshalf || false,
+        halfprice: item.halfprice || item.price / 2,
+      });
+    }
   }, [item]);
-  
-  const queryClient = useQueryClient();
+
+  // Create new item mutation
+  const createItem = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('menuitems')
+        .insert([{
+          name: itemData.name,
+          price: itemData.price,
+          supportshalf: itemData.supportshalf,
+          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null
+        }]);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Item created successfully" });
+      queryClient.invalidateQueries({ queryKey: ['menuItems'] });
+      onClose();
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Failed to create item", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
   
   // Update item mutation
   const updateItem = useMutation({
@@ -63,7 +93,7 @@ export default function EditItemDialog({
           supportshalf: itemData.supportshalf,
           halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null
         })
-        .eq('id', typeof item.id === 'string' ? parseInt(item.id) : item.id); // Convert string to number if needed
+        .eq('id', item.id);
       
       if (error) throw error;
     },
@@ -83,7 +113,11 @@ export default function EditItemDialog({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateItem.mutate();
+    if (item.id) {
+      updateItem.mutate();
+    } else {
+      createItem.mutate();
+    }
   };
   
   return (
@@ -91,9 +125,9 @@ export default function EditItemDialog({
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Menu Item</DialogTitle>
+            <DialogTitle>{item.id ? "Edit Menu Item" : "Add New Menu Item"}</DialogTitle>
             <DialogDescription>
-              Update the details for this menu item. Click save when you're done.
+              {item.id ? "Update the details for this menu item." : "Add a new menu item to your menu."} Click save when you're done.
             </DialogDescription>
           </DialogHeader>
           
@@ -132,7 +166,6 @@ export default function EditItemDialog({
                   id="supportshalf"
                   checked={itemData.supportshalf}
                   onCheckedChange={(checked) => setItemData({ ...itemData, supportshalf: checked })}
-                  className="bg-gray-300 data-[state=checked]:bg-purple-500" // Updated toggle color
                 />
                 <span className="text-sm text-muted-foreground">
                   {itemData.supportshalf ? "Yes" : "No"}
@@ -160,8 +193,11 @@ export default function EditItemDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={updateItem.isPending}>
-              {updateItem.isPending ? "Saving..." : "Save Changes"}
+            <Button 
+              type="submit" 
+              disabled={createItem.isPending || updateItem.isPending || !itemData.name || itemData.price <= 0}
+            >
+              {createItem.isPending || updateItem.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </form>
