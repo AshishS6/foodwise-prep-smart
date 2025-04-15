@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,61 +44,66 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
       
       if (error) throw error;
       
-      const itemsWithPortions = data?.map(item => {
-        const portions = [];
+      // Process the menu items to ensure proper portions format
+      return data?.map(item => {
+        // If item already has portions in the correct format, use them
+        if (item.portions && Array.isArray(item.portions) && item.portions.length > 0) {
+          return item;
+        }
         
-        portions.push({
+        // Create default portions for backward compatibility
+        const defaultPortions = [];
+        
+        defaultPortions.push({
           label: "Full",
           price: item.price,
           multiplier: 1,
-          unit: "Plate"
+          unit: "plate"
         });
         
         if (item.supportshalf) {
-          portions.push({
+          defaultPortions.push({
             label: "Half",
             price: item.halfprice || item.price / 2,
             multiplier: 0.5,
-            unit: "Plate"
+            unit: "plate"
           });
         }
         
         if (item.category === "Beverages") {
-          portions.push(
+          defaultPortions.push(
             {
               label: "Glass",
               price: item.price * 0.3,
               multiplier: 0.3,
-              unit: "Glass"
+              unit: "glass"
             },
             {
               label: "Liter",
               price: item.price,
               multiplier: 1,
-              unit: "Liter"
+              unit: "liter"
             },
             {
               label: "250ml",
               price: item.price * 0.25,
               multiplier: 0.25,
-              unit: "Liter"
+              unit: "liter"
             },
             {
               label: "500ml",
               price: item.price * 0.5,
               multiplier: 0.5,
-              unit: "Liter"
+              unit: "liter"
             }
           );
         }
         
         return {
           ...item,
-          portions
+          portions: defaultPortions
         };
-      });
-      
-      return itemsWithPortions || [];
+      }) || [];
     }
   });
 

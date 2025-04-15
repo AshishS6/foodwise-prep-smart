@@ -66,6 +66,7 @@ export type Database = {
           halfprice: number | null
           id: number
           name: string
+          portions: Json | null
           price: number
           supportshalf: boolean | null
         }
@@ -74,6 +75,7 @@ export type Database = {
           halfprice?: number | null
           id?: number
           name: string
+          portions?: Json | null
           price: number
           supportshalf?: boolean | null
         }
@@ -82,6 +84,7 @@ export type Database = {
           halfprice?: number | null
           id?: number
           name?: string
+          portions?: Json | null
           price?: number
           supportshalf?: boolean | null
         }

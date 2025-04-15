@@ -90,11 +90,15 @@ export default function EditItemDialog({
   // Create new item mutation
   const createItem = useMutation({
     mutationFn: async () => {
+      // Calculate a default price from the first portion for backward compatibility
+      const defaultPrice = itemData.portions.length > 0 ? itemData.portions[0].price : 0;
+      
       const { error } = await supabase
         .from('menuitems')
         .insert([{
           name: itemData.name,
           category: itemData.category,
+          price: defaultPrice, // Include price for backward compatibility
           portions: itemData.portions,
         }]);
       
@@ -121,11 +125,15 @@ export default function EditItemDialog({
         throw new Error("No item ID provided for update");
       }
 
+      // Calculate a default price from the first portion for backward compatibility
+      const defaultPrice = itemData.portions.length > 0 ? itemData.portions[0].price : 0;
+      
       const { error } = await supabase
         .from('menuitems')
         .update({
           name: itemData.name,
           category: itemData.category,
+          price: defaultPrice, // Include price for backward compatibility
           portions: itemData.portions,
         })
         .eq('id', typeof item.id === 'string' ? parseInt(item.id, 10) : item.id);
