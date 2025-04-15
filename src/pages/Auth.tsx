@@ -25,6 +25,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, session } = useAuthStore();
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -73,6 +74,15 @@ const Auth = () => {
       return;
     }
 
+    if (!name) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (password.length < 6) {
       toast({
         title: "Weak password",
@@ -84,7 +94,7 @@ const Auth = () => {
 
     try {
       setIsLoading(true);
-      await signUp(email, password);
+      await signUp(email, password, name);
       toast({
         title: "Account created!",
         description: "Your account has been created successfully.",
@@ -148,6 +158,16 @@ const Auth = () => {
             </TabsContent>
             <TabsContent value="signup">
               <div className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    placeholder="John Doe"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input

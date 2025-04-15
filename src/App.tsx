@@ -14,6 +14,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import OrderHistory from "./pages/OrderHistory";
 import Analytics from "./pages/Analytics";
+import TeamManagement from "./pages/TeamManagement";
 
 // Create a new QueryClient with specific configuration for better debugging
 const queryClient = new QueryClient({
@@ -28,7 +29,7 @@ const queryClient = new QueryClient({
 
 // Define role-based permissions
 const ROLE_PERMISSIONS = {
-  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports'],
+  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team'],
   'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
   'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports']
@@ -162,6 +163,14 @@ const App = () => (
                 <div className="container mx-auto p-6">
                   <h1 className="text-2xl font-bold mb-4">Daily Reports Coming Soon</h1>
                 </div>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/team-management" 
+            element={
+              <ProtectedRoute requiredPermission="team">
+                <TeamManagement />
               </ProtectedRoute>
             } 
           />

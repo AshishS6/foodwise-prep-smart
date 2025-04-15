@@ -1,8 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChartContainer } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 interface ItemSale {
   id: number;
@@ -35,15 +35,18 @@ export function ItemSalesAnalysis({ sales }: ItemSalesAnalysisProps) {
           <>
             <div className="h-80 mb-6">
               <ChartContainer config={chartConfig.items}>
-                <BarChart
-                  data={sales.slice(0, 10)}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Bar dataKey="count" name="count" fill="#82ca9d" />
-                </BarChart>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={sales.slice(0, 10)}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="#82ca9d" name="count" />
+                  </BarChart>
+                </ResponsiveContainer>
               </ChartContainer>
             </div>
             

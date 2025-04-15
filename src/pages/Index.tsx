@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +11,8 @@ import {
   AlertTriangle, 
   Calendar, 
   Clock,
-  PlusCircle
+  PlusCircle,
+  UserPlus
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, userRole } = useAuthStore();
+  const { user, userRole, userName } = useAuthStore();
   const timeZone = "Asia/Kolkata";
 
   // Query for today's sales data
@@ -169,7 +169,7 @@ const Index = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center py-6">
         <div>
           <h1 className="text-3xl font-bold">Payasakkada Prep Smart</h1>
@@ -190,176 +190,197 @@ const Index = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card 
-          className="cursor-pointer hover:bg-blue-50 transition-colors"
-          onClick={() => navigate('/order-history')}
-        >
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-medium text-blue-700">Today's Sales</CardTitle>
-            <ArrowRight className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            {salesLoading ? (
-              <p>Loading...</p>
-            ) : (
-              <>
-                <p className="text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
-                <p className="text-sm text-muted-foreground">{todaySales?.orders?.length || 0} orders today</p>
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>Last updated {salesUpdatedAt ? getTimeAgo(salesUpdatedAt) : "never"}</span>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer hover:bg-orange-50 transition-colors"
-          onClick={() => navigate('/inventory')}
-        >
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-medium text-orange-700">Low Stock Alert</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            {ingredientsLoading ? (
-              <p>Loading...</p>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
-                <p className="text-sm text-muted-foreground">ingredients need restocking</p>
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>Last updated {ingredientsUpdatedAt ? getTimeAgo(ingredientsUpdatedAt) : "never"}</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer hover:bg-purple-50 transition-colors"
-          onClick={() => navigate('/prep-plans')}
-        >
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-medium text-purple-700">Tomorrow's Prep</CardTitle>
-            <Calendar className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            {prepLoading ? (
-              <p>Loading...</p>
-            ) : prepPlan && prepPlan.length === 0 ? (
-              <div className="space-y-2">
-                <p>No prep plan for tomorrow yet</p>
-                <Button size="sm" onClick={() => navigate('/prep-plans')} className="flex items-center">
-                  <PlusCircle className="h-4 w-4 mr-1" />
-                  Plan Now
-                </Button>
-              </div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
-                <p className="text-sm text-muted-foreground">items in tomorrow's prep plan</p>
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>Last updated {prepUpdatedAt ? getTimeAgo(prepUpdatedAt) : "never"}</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer hover:bg-indigo-50 transition-colors md:col-span-3"
-          onClick={handleAnalyticsClick}
-        >
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-medium text-indigo-700">Analytics Overview</CardTitle>
-            <BarChart3 className="h-4 w-4 text-indigo-500" />
-          </CardHeader>
-          <CardContent className="flex items-center justify-center p-4">
-            <Button 
-              variant="default" 
-              className="bg-indigo-500 hover:bg-indigo-600"
-              onClick={handleAnalyticsClick}
-            >
-              View Detailed Analytics
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {modules.map((module) => (
-          <Button
-            key={module.title}
-            variant="outline"
-            className={`h-auto p-6 flex flex-col items-center justify-center gap-3 text-center ${module.bgColor}`}
-            onClick={() => navigate(module.path)}
+      <div className="container mx-auto p-4">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <div className="text-sm text-muted-foreground">
+            {userName ? `Welcome, ${userName}` : session?.user?.email} ({userRole})
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card 
+            className="cursor-pointer hover:bg-blue-50 transition-colors"
+            onClick={() => navigate('/order-history')}
           >
-            {module.icon}
-            <div>
-              <h3 className="font-semibold text-lg">{module.title}</h3>
-              <p className="text-sm text-muted-foreground">{module.description}</p>
-            </div>
-          </Button>
-        ))}
-      </div>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-medium text-blue-700">Today's Sales</CardTitle>
+              <ArrowRight className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              {salesLoading ? (
+                <p>Loading...</p>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
+                  <p className="text-sm text-muted-foreground">{todaySales?.orders?.length || 0} orders today</p>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>Last updated {salesUpdatedAt ? getTimeAgo(salesUpdatedAt) : "never"}</span>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-      <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button className="rounded-full h-12 w-12 shadow-lg" onClick={() => navigate('/pos')}>
-                <ShoppingCart className="h-6 w-6" />
+          <Card
+            className="cursor-pointer hover:bg-orange-50 transition-colors"
+            onClick={() => navigate('/inventory')}
+          >
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-medium text-orange-700">Low Stock Alert</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              {ingredientsLoading ? (
+                <p>Loading...</p>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
+                  <p className="text-sm text-muted-foreground">ingredients need restocking</p>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>Last updated {ingredientsUpdatedAt ? getTimeAgo(ingredientsUpdatedAt) : "never"}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:bg-purple-50 transition-colors"
+            onClick={() => navigate('/prep-plans')}
+          >
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-medium text-purple-700">Tomorrow's Prep</CardTitle>
+              <Calendar className="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              {prepLoading ? (
+                <p>Loading...</p>
+              ) : prepPlan && prepPlan.length === 0 ? (
+                <div className="space-y-2">
+                  <p>No prep plan for tomorrow yet</p>
+                  <Button size="sm" onClick={() => navigate('/prep-plans')} className="flex items-center">
+                    <PlusCircle className="h-4 w-4 mr-1" />
+                    Plan Now
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-3xl font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
+                  <p className="text-sm text-muted-foreground">items in tomorrow's prep plan</p>
+                  <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>Last updated {prepUpdatedAt ? getTimeAgo(prepUpdatedAt) : "never"}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:bg-indigo-50 transition-colors md:col-span-3"
+            onClick={handleAnalyticsClick}
+          >
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-medium text-indigo-700">Analytics Overview</CardTitle>
+              <BarChart3 className="h-4 w-4 text-indigo-500" />
+            </CardHeader>
+            <CardContent className="flex items-center justify-center p-4">
+              <Button 
+                variant="default" 
+                className="bg-indigo-500 hover:bg-indigo-600"
+                onClick={handleAnalyticsClick}
+              >
+                View Detailed Analytics
               </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>New Order</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button className="rounded-full h-12 w-12 shadow-lg bg-orange-500 hover:bg-orange-600" onClick={() => navigate('/inventory')}>
-                <Package className="h-6 w-6" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>New Purchase</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button className="rounded-full h-12 w-12 shadow-lg bg-green-500 hover:bg-green-600" onClick={() => navigate('/recipes')}>
-                <ScrollText className="h-6 w-6" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>Add Recipe</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button className="rounded-full h-12 w-12 shadow-lg bg-indigo-500 hover:bg-indigo-600" onClick={() => navigate('/analytics')}>
-                <BarChart3 className="h-6 w-6" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>View Analytics</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {modules.map((module) => (
+            <Button
+              key={module.title}
+              variant="outline"
+              className={`h-auto p-6 flex flex-col items-center justify-center gap-3 text-center ${module.bgColor}`}
+              onClick={() => navigate(module.path)}
+            >
+              {module.icon}
+              <div>
+                <h3 className="font-semibold text-lg">{module.title}</h3>
+                <p className="text-sm text-muted-foreground">{module.description}</p>
+              </div>
+            </Button>
+          ))}
+        </div>
+
+        {userRole === 'Admin' && (
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate('/team-management')}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Team Management</CardTitle>
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">Manage team members and access rights</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button className="rounded-full h-12 w-12 shadow-lg" onClick={() => navigate('/pos')}>
+                  <ShoppingCart className="h-6 w-6" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>New Order</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button className="rounded-full h-12 w-12 shadow-lg bg-orange-500 hover:bg-orange-600" onClick={() => navigate('/inventory')}>
+                  <Package className="h-6 w-6" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>New Purchase</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button className="rounded-full h-12 w-12 shadow-lg bg-green-500 hover:bg-green-600" onClick={() => navigate('/recipes')}>
+                  <ScrollText className="h-6 w-6" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Add Recipe</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button className="rounded-full h-12 w-12 shadow-lg bg-indigo-500 hover:bg-indigo-600" onClick={() => navigate('/analytics')}>
+                  <BarChart3 className="h-6 w-6" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>View Analytics</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   );

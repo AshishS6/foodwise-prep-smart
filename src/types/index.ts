@@ -12,3 +12,18 @@ export type MenuItem = {
   category: string;
   portions: PortionType[];
 };
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+};
+
+export type TeamMember = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  user_id: string;
+};
