@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, BarChart, Bar } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +14,12 @@ import { format, subDays } from "date-fns";
 import * as ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, LineChart,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  Legend, BarChart, Bar
+} from "recharts";
+import { ChartContainer, ChartTooltipContent, ChartLegendContent } from "@/components/ui/chart";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A259FF', '#FF6B6B'];
 
@@ -339,6 +344,17 @@ const Analytics = () => {
     console.error("Orders fetch error:", ordersError);
   }
 
+  // Define chart configs for consistency
+  const chartConfig = {
+    sales: {
+      amount: { color: "#8884d8", label: "Sales" }
+    },
+    items: {
+      count: { color: "#82ca9d", label: "Units Sold" },
+      revenue: { color: "#8884d8", label: "Revenue" }
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between gap-4 mb-6">
@@ -487,7 +503,7 @@ const Analytics = () => {
                   <p className="text-center py-8 text-muted-foreground">No data available</p>
                 ) : (
                   <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ChartContainer config={chartConfig.sales}>
                       <LineChart
                         data={salesByDay}
                         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
@@ -495,17 +511,24 @@ const Analytics = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="date" />
                         <YAxis />
-                        <RechartsTooltip formatter={(value: any) => [`₹${value}`, 'Sales']} />
-                        <Legend />
+                        <RechartsTooltip 
+                          content={props => (
+                            <ChartTooltipContent 
+                              {...props} 
+                              formatter={(value: any) => [`₹${value}`, 'Sales']} 
+                            />
+                          )} 
+                        />
+                        <Legend content={(props) => <ChartLegendContent {...props} />} />
                         <Line
                           type="monotone"
                           dataKey="amount"
-                          name="Sales"
+                          name="amount"
                           stroke="#8884d8"
                           activeDot={{ r: 8 }}
                         />
                       </LineChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   </div>
                 )}
               </CardContent>
@@ -523,7 +546,7 @@ const Analytics = () => {
                 ) : (
                   <>
                     <div className="h-80 mb-6">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ChartContainer config={chartConfig.items}>
                         <BarChart
                           data={itemSales.slice(0, 10)}
                           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
@@ -531,11 +554,19 @@ const Analytics = () => {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
-                          <RechartsTooltip formatter={(value: any, name: any) => [value, name === "count" ? "Units Sold" : "Revenue (₹)"]} />
-                          <Legend />
-                          <Bar dataKey="count" name="Units Sold" fill="#82ca9d" />
+                          <RechartsTooltip 
+                            content={props => (
+                              <ChartTooltipContent 
+                                {...props} 
+                                formatter={(value: any, name: any) => 
+                                  [value, name === "count" ? "Units Sold" : "Revenue (₹)"]} 
+                              />
+                            )} 
+                          />
+                          <Legend content={(props) => <ChartLegendContent {...props} />} />
+                          <Bar dataKey="count" name="count" fill="#82ca9d" />
                         </BarChart>
-                      </ResponsiveContainer>
+                      </ChartContainer>
                     </div>
                     
                     <div className="border rounded-md">
