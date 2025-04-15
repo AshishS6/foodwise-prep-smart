@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ const Index = () => {
   const { user, userRole, userName, session } = useAuthStore();
   const timeZone = "Asia/Kolkata";
 
-  // Query for today's sales data
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
     queryKey: ['todaySales'],
     queryFn: async () => {
@@ -61,7 +59,6 @@ const Index = () => {
     }
   });
 
-  // Query for low stock ingredients
   const { data: lowStockIngredients, isLoading: ingredientsLoading, dataUpdatedAt: ingredientsUpdatedAt } = useQuery({
     queryKey: ['lowStockIngredients'],
     queryFn: async () => {
@@ -87,7 +84,6 @@ const Index = () => {
     }
   });
 
-  // Query for tomorrow's prep plan
   const { data: prepPlan, isLoading: prepLoading, dataUpdatedAt: prepUpdatedAt } = useQuery({
     queryKey: ['tomorrowPrepPlan'],
     queryFn: async () => {
@@ -126,7 +122,6 @@ const Index = () => {
     return `${Math.floor(seconds / 86400)} days ago`;
   };
 
-  // Main modules navigation cards
   const modules = [
     {
       title: "POS / Sales Entry",
@@ -166,11 +161,13 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex justify-between items-center py-6">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <header className="flex justify-between items-center py-8 px-6 bg-white/50 backdrop-blur-sm border-b">
         <div>
-          <h1 className="text-3xl font-bold">Payasakkada Prep Smart</h1>
-          <p className="text-muted-foreground">Smart restaurant management system</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Payasakkada Prep Smart
+          </h1>
+          <p className="text-muted-foreground mt-1">Smart restaurant management system</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
@@ -179,38 +176,27 @@ const Index = () => {
           {userRole === 'Admin' ? (
             <Button 
               variant="outline" 
-              className="flex gap-2" 
+              className="flex gap-2 hover:bg-primary/5" 
               onClick={() => navigate('/team-management')}
             >
               <UserPlus className="h-5 w-5 text-primary" />
               Team Management
             </Button>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="flex gap-2" 
-              onClick={() => navigate('/analytics')}
-            >
-              <BarChart3 className="h-5 w-5 text-primary" />
-              Analytics
-            </Button>
-          )}
+          ) : null}
         </div>
       </header>
 
-      <div className="container mx-auto p-4">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+      <div className="container mx-auto p-6 space-y-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
           <div className="text-sm text-muted-foreground">
             {userName ? `Welcome, ${userName}` : ""} {userRole ? `(${userRole})` : ""}
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card 
-            className="cursor-pointer hover:bg-blue-50 transition-colors"
-            onClick={() => navigate('/order-history')}
-          >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20"
+            onClick={() => navigate('/order-history')}>
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-medium text-blue-700">Today's Sales</CardTitle>
               <ArrowRight className="h-4 w-4 text-blue-500" />
@@ -231,10 +217,8 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card
-            className="cursor-pointer hover:bg-orange-50 transition-colors"
-            onClick={() => navigate('/inventory')}
-          >
+          <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20"
+            onClick={() => navigate('/inventory')}>
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-medium text-orange-700">Low Stock Alert</CardTitle>
               <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -255,10 +239,8 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card
-            className="cursor-pointer hover:bg-purple-50 transition-colors"
-            onClick={() => navigate('/prep-plans')}
-          >
+          <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20"
+            onClick={() => navigate('/prep-plans')}>
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-medium text-purple-700">Tomorrow's Prep</CardTitle>
               <Calendar className="h-4 w-4 text-purple-500" />
@@ -288,12 +270,12 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
-          {modules.map((module) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+          {modules.filter(m => m.title !== "Analytics & Reports").map((module) => (
             <Button
               key={module.title}
               variant="outline"
-              className={`h-auto p-6 flex flex-col items-center justify-center gap-3 text-center ${module.bgColor}`}
+              className={`h-auto p-6 flex flex-col items-center justify-center gap-3 text-center rounded-xl transition-all duration-200 hover:shadow-lg bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20 ${module.bgColor}`}
               onClick={() => navigate(module.path)}
             >
               {module.icon}
@@ -304,6 +286,33 @@ const Index = () => {
             </Button>
           ))}
         </div>
+
+        <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20 mt-6"
+          onClick={() => navigate('/analytics')}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-xl font-semibold text-indigo-700">Analytics & Reports</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Comprehensive insights into your restaurant's performance
+              </p>
+            </div>
+            <BarChart3 className="h-8 w-8 text-indigo-500" />
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center p-4 bg-indigo-50 rounded-lg">
+              <h4 className="font-medium text-indigo-700">Sales Analytics</h4>
+              <p className="text-sm text-muted-foreground text-center mt-1">Track revenue and order trends</p>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-indigo-50 rounded-lg">
+              <h4 className="font-medium text-indigo-700">Inventory Reports</h4>
+              <p className="text-sm text-muted-foreground text-center mt-1">Monitor stock levels and usage</p>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-indigo-50 rounded-lg">
+              <h4 className="font-medium text-indigo-700">Performance Metrics</h4>
+              <p className="text-sm text-muted-foreground text-center mt-1">Analyze kitchen efficiency</p>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
           <TooltipProvider>
