@@ -1,8 +1,16 @@
 
 import POSContainer from "@/components/POS/POSContainer";
+import { Helmet } from "react-helmet";
 
 const POS = () => {
-  return <POSContainer />;
+  return (
+    <>
+      <Helmet>
+        <title>Point of Sale - FoodWise</title>
+      </Helmet>
+      <POSContainer />
+    </>
+  );
 };
 
 export default POS;
