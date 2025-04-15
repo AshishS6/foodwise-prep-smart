@@ -189,19 +189,15 @@ const Index = () => {
       <div className="container mx-auto p-6 space-y-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
-          <div className="text-sm text-muted-foreground">
-            {userName ? `Welcome, ${userName}` : ""} {userRole ? `(${userRole})` : ""}
-          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20"
-            onClick={() => navigate('/order-history')}>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between bg-blue-50/50">
               <CardTitle className="text-lg font-medium text-blue-700">Today's Sales</CardTitle>
               <ArrowRight className="h-4 w-4 text-blue-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {salesLoading ? (
                 <p>Loading...</p>
               ) : (
@@ -217,13 +213,12 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20"
-            onClick={() => navigate('/inventory')}>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between bg-orange-50/50">
               <CardTitle className="text-lg font-medium text-orange-700">Low Stock Alert</CardTitle>
               <AlertTriangle className="h-4 w-4 text-orange-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {ingredientsLoading ? (
                 <p>Loading...</p>
               ) : (
@@ -239,13 +234,12 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20"
-            onClick={() => navigate('/prep-plans')}>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <Card className="rounded-2xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between bg-purple-50/50">
               <CardTitle className="text-lg font-medium text-purple-700">Tomorrow's Prep</CardTitle>
               <Calendar className="h-4 w-4 text-purple-500" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {prepLoading ? (
                 <p>Loading...</p>
               ) : prepPlan && prepPlan.length === 0 ? (
@@ -275,7 +269,7 @@ const Index = () => {
             <Button
               key={module.title}
               variant="outline"
-              className={`h-auto p-6 flex flex-col items-center justify-center gap-3 text-center rounded-xl transition-all duration-200 hover:shadow-lg bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20 ${module.bgColor}`}
+              className={`h-auto p-6 flex flex-col items-center justify-center gap-3 text-center rounded-2xl transition-all duration-200 hover:shadow-lg bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 ${module.bgColor}`}
               onClick={() => navigate(module.path)}
             >
               {module.icon}
@@ -287,9 +281,11 @@ const Index = () => {
           ))}
         </div>
 
-        <Card className="rounded-xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/50 backdrop-blur-sm border-muted/20 hover:border-primary/20 mt-6"
-          onClick={() => navigate('/analytics')}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card 
+          className="rounded-2xl shadow-lg overflow-hidden mt-8 hover:shadow-xl transition-all duration-200 bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20"
+          onClick={() => navigate('/analytics')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2 bg-indigo-50/50">
             <div>
               <CardTitle className="text-xl font-semibold text-indigo-700">Analytics & Reports</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
@@ -298,7 +294,7 @@ const Index = () => {
             </div>
             <BarChart3 className="h-8 w-8 text-indigo-500" />
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
             <div className="flex flex-col items-center p-4 bg-indigo-50 rounded-lg">
               <h4 className="font-medium text-indigo-700">Sales Analytics</h4>
               <p className="text-sm text-muted-foreground text-center mt-1">Track revenue and order trends</p>
