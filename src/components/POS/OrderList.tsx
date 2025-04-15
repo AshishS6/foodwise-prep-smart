@@ -2,7 +2,7 @@
 import { ShoppingCart, MinusCircle, PlusCircle, Trash2, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CartItem } from "./POSContainer";
+import { CartItem } from "@/types";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { 

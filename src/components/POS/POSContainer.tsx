@@ -222,7 +222,7 @@ const POSContainer = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <MenuList 
-            onAddToCart={addToCart} 
+            onAddToCart={(item, portionType, note) => addToCart(item, portionType, currentBillGroup, note)} 
             searchTerm={searchTerm} 
             setSearchTerm={setSearchTerm} 
           />
@@ -305,14 +305,14 @@ const POSContainer = () => {
                       removeFromCart(globalIndex);
                     }}
                     onSubmitOrder={submitCurrentGroup}
-                    isSubmitting={submitOrder.isLoading || isValidatingOrder}
+                    isSubmitting={submitOrder.isPending || isValidatingOrder}
                   />
                   <div className="mt-2">
                     <Button
                       variant="outline"
                       className="w-full text-sm"
                       onClick={submitCurrentGroup}
-                      disabled={submitOrder.isLoading || isValidatingOrder}
+                      disabled={submitOrder.isPending || isValidatingOrder}
                     >
                       <FileText className="h-4 w-4 mr-1" />
                       Complete Bill #{group}
@@ -328,9 +328,9 @@ const POSContainer = () => {
               className="w-full" 
               size="lg"
               onClick={handleOrderSubmit}
-              disabled={submitOrder.isLoading || isValidatingOrder || cart.length === 0}
+              disabled={submitOrder.isPending || isValidatingOrder || cart.length === 0}
             >
-              {submitOrder.isLoading || isValidatingOrder ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
+              {submitOrder.isPending || isValidatingOrder ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
             </Button>
           </div>
         </div>

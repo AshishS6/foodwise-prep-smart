@@ -1,3 +1,4 @@
+
 export type PortionType = {
   label: string;     // "Full", "Half", "Glass", "1L", "500ml", "Piece"
   price: number;     // Price for this portion
@@ -10,6 +11,16 @@ export type MenuItem = {
   name: string;
   category: string;
   portions: PortionType[];
+};
+
+export type CartItem = {
+  menuItemId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  note: string;
+  billGroup: number;
+  portionType: PortionType;
 };
 
 export type UserProfile = {

@@ -5,7 +5,7 @@ import { CartItem, PortionType } from "@/types";
 export const useCart = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const addToCart = (item: any, portionType: PortionType, note: string = '') => {
+  const addToCart = (item: any, portionType: PortionType, currentBillGroup: number, note: string = '') => {
     const itemName = `${item.name} (${portionType.label})`;
     
     const existingItemIndex = cart.findIndex(cartItem => 
