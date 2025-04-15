@@ -14,7 +14,8 @@ interface ItemSalesChartProps {
 }
 
 export function ItemSalesChart({ sales }: ItemSalesChartProps) {
-  const COLORS = ['#82ca9d', '#8884d8', '#ffc658', '#ff7300', '#0088fe', '#00C49F'];
+  // Improved color palette for better visual distinction
+  const COLORS = ['#9b87f5', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00C49F', '#8884d8', '#FFBB28'];
   
   // Sort and format data for the chart
   const chartData = [...sales]
@@ -27,11 +28,11 @@ export function ItemSalesChart({ sales }: ItemSalesChartProps) {
       fullName: item.name // Keep full name for tooltip
     }));
 
-  // Define chart configuration
+  // Define chart configuration with improved styling
   const chartConfig = {
     revenue: {
       label: 'Revenue',
-      color: '#8884d8'
+      color: '#9b87f5'
     },
     count: {
       label: 'Units Sold',
@@ -47,16 +48,29 @@ export function ItemSalesChart({ sales }: ItemSalesChartProps) {
             data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
           >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
             <XAxis 
               dataKey="name" 
               angle={-45} 
               textAnchor="end" 
               height={70} 
               tick={{ fontSize: 12 }}
+              tickLine={{ stroke: '#E5DEFF' }}
+              axisLine={{ stroke: '#E5DEFF' }}
             />
-            <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-            <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+            <YAxis 
+              yAxisId="left" 
+              orientation="left" 
+              stroke="#9b87f5"
+              tickFormatter={(value) => `₹${value}`} 
+              label={{ value: 'Revenue (₹)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9b87f5', fontSize: 12 }, dx: -15 }}
+            />
+            <YAxis 
+              yAxisId="right" 
+              orientation="right" 
+              stroke="#82ca9d" 
+              label={{ value: 'Units Sold', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fill: '#82ca9d', fontSize: 12 }, dx: 15 }}
+            />
             <Tooltip 
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
@@ -64,7 +78,7 @@ export function ItemSalesChart({ sales }: ItemSalesChartProps) {
                   return (
                     <div className="bg-white p-3 border rounded-md shadow-md">
                       <p className="font-semibold">{data.fullName}</p>
-                      <p className="text-[#8884d8]">Revenue: ₹{data.revenue.toFixed(2)}</p>
+                      <p className="text-[#9b87f5]">Revenue: ₹{data.revenue.toFixed(2)}</p>
                       <p className="text-[#82ca9d]">Units Sold: {data.count}</p>
                     </div>
                   );
@@ -72,11 +86,14 @@ export function ItemSalesChart({ sales }: ItemSalesChartProps) {
                 return null;
               }}
             />
-            <Legend />
+            <Legend 
+              wrapperStyle={{ paddingTop: 10 }} 
+              formatter={(value) => <span className="text-xs font-medium">{value}</span>}
+            />
             <Bar 
               yAxisId="left"
               dataKey="revenue" 
-              fill="#8884d8" 
+              fill="#9b87f5" 
               name="Revenue (₹)" 
               radius={[4, 4, 0, 0]}
               barSize={20}
@@ -92,6 +109,7 @@ export function ItemSalesChart({ sales }: ItemSalesChartProps) {
               name="Units Sold" 
               radius={[4, 4, 0, 0]}
               barSize={20}
+              opacity={0.9}
             />
           </BarChart>
         </ResponsiveContainer>
