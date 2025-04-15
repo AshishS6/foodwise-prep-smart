@@ -52,7 +52,7 @@ const ProtectedRoute = ({
     return <Navigate to="/auth" replace />;
   }
 
-  // Special case for ashishsasikumar@gmail.com - always allow access
+  // Special case for specific email - always allow access
   const userEmail = session?.user?.email;
   if (userEmail === 'ashishsasikumar@gmail.com') {
     return children;
@@ -165,7 +165,7 @@ const App = () => (
               </ProtectedRoute>
             } 
           />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

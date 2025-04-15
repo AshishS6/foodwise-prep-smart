@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -27,18 +28,26 @@ const Index = () => {
   const { user, userRole } = useAuthStore();
   const timeZone = "Asia/Kolkata";
 
+  // Query for today's sales data
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
     queryKey: ['todaySales'],
     queryFn: async () => {
-      const today = toZonedTime(new Date(), timeZone);
-      today.setHours(0, 0, 0, 0);
-      
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .gte('timestamp', today.toISOString());
-      
-      if (error) {
+      try {
+        const today = toZonedTime(new Date(), timeZone);
+        today.setHours(0, 0, 0, 0);
+        
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .gte('timestamp', today.toISOString());
+        
+        if (error) throw error;
+        
+        return {
+          orders: data || [],
+          totalRevenue: data?.reduce((sum, order) => sum + (order.total || 0), 0) || 0
+        };
+      } catch (error: any) {
         toast({
           title: "Error fetching sales data",
           description: error.message,
@@ -46,25 +55,25 @@ const Index = () => {
         });
         return { orders: [], totalRevenue: 0 };
       }
-      
-      return {
-        orders: data || [],
-        totalRevenue: data?.reduce((sum, order) => sum + order.total, 0) || 0
-      };
     }
   });
 
+  // Query for low stock ingredients
   const { data: lowStockIngredients, isLoading: ingredientsLoading, dataUpdatedAt: ingredientsUpdatedAt } = useQuery({
     queryKey: ['lowStockIngredients'],
     queryFn: async () => {
-      const THRESHOLD = 10; 
-      
-      const { data, error } = await supabase
-        .from('ingredients')
-        .select('*')
-        .lt('stock', THRESHOLD);
-      
-      if (error) {
+      try {
+        const THRESHOLD = 10;
+        
+        const { data, error } = await supabase
+          .from('ingredients')
+          .select('*')
+          .lt('stock', THRESHOLD);
+        
+        if (error) throw error;
+        
+        return data || [];
+      } catch (error: any) {
         toast({
           title: "Error fetching inventory data",
           description: error.message,
@@ -72,26 +81,29 @@ const Index = () => {
         });
         return [];
       }
-      
-      return data || [];
     }
   });
 
+  // Query for tomorrow's prep plan
   const { data: prepPlan, isLoading: prepLoading, dataUpdatedAt: prepUpdatedAt } = useQuery({
     queryKey: ['tomorrowPrepPlan'],
     queryFn: async () => {
-      const tomorrow = toZonedTime(new Date(), timeZone);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      
-      const tomorrowDateStr = format(tomorrow, 'yyyy-MM-dd');
-      
-      const { data, error } = await supabase
-        .from('prepplans')
-        .select('*')
-        .eq('date', tomorrowDateStr);
-      
-      if (error) {
+      try {
+        const tomorrow = toZonedTime(new Date(), timeZone);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        const tomorrowDateStr = format(tomorrow, 'yyyy-MM-dd');
+        
+        const { data, error } = await supabase
+          .from('prepplans')
+          .select('*')
+          .eq('date', tomorrowDateStr);
+        
+        if (error) throw error;
+        
+        return data || [];
+      } catch (error: any) {
         toast({
           title: "Error fetching prep plan",
           description: error.message,
@@ -99,8 +111,6 @@ const Index = () => {
         });
         return [];
       }
-      
-      return data || [];
     }
   });
 
@@ -113,6 +123,7 @@ const Index = () => {
     return `${Math.floor(seconds / 86400)} days ago`;
   };
 
+  // Main modules navigation cards
   const modules = [
     {
       title: "POS / Sales Entry",
@@ -144,6 +155,11 @@ const Index = () => {
     }
   ];
 
+  // Handler for analytics navigation
+  const handleAnalyticsClick = () => {
+    navigate('/analytics');
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       <header className="flex justify-between items-center py-6">
@@ -155,7 +171,11 @@ const Index = () => {
           <div className="text-sm text-muted-foreground">
             👤 {user?.email || "User"} | {userRole || "Guest"}
           </div>
-          <Button variant="outline" className="flex gap-2" onClick={() => navigate('/analytics')}>
+          <Button 
+            variant="outline" 
+            className="flex gap-2" 
+            onClick={handleAnalyticsClick}
+          >
             <BarChart3 className="h-5 w-5 text-primary" />
             Analytics
           </Button>
