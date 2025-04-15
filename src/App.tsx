@@ -13,6 +13,7 @@ import PrepPlans from "./pages/PrepPlans";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import OrderHistory from "./pages/OrderHistory";
+import Analytics from "./pages/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -141,10 +142,7 @@ const App = () => (
             path="/analytics" 
             element={
               <ProtectedRoute requiredPermission="analytics">
-                {/* Analytics page placeholder - we'll implement this shortly */}
-                <div className="container mx-auto p-6">
-                  <h1 className="text-2xl font-bold mb-4">Analytics Coming Soon</h1>
-                </div>
+                <Analytics />
               </ProtectedRoute>
             } 
           />

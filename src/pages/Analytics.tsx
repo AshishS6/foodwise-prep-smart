@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, BarChart, Bar } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { format, subDays } from "date-fns";
 import * as ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A259FF', '#FF6B6B'];
 
@@ -28,13 +30,18 @@ const Analytics = () => {
       return;
     }
     
-    if (userRole !== 'Admin') {
+    if (userRole !== 'Admin' && userRole !== 'Manager') {
       navigate('/');
+      toast({
+        title: "Access restricted",
+        description: "You need admin privileges to access this page.",
+        variant: "destructive"
+      });
       return;
     }
-  }, [session, userRole, navigate]);
+  }, [session, userRole, navigate, toast]);
 
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders', timeRange],
     queryFn: async () => {
       const startDate = getStartDateForRange(timeRange);
@@ -54,7 +61,49 @@ const Analytics = () => {
         return [];
       }
       
-      return data;
+      return data || [];
+    }
+  });
+
+  const { data: menuItems, isLoading: menuItemsLoading } = useQuery({
+    queryKey: ['menuItems'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('menuitems')
+        .select('*');
+      
+      if (error) {
+        toast({
+          title: "Error loading menu items",
+          description: error.message,
+          variant: "destructive"
+        });
+        return [];
+      }
+      
+      return data || [];
+    }
+  });
+
+  const { data: lowStockItems, isLoading: lowStockLoading } = useQuery({
+    queryKey: ['lowStockItems'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ingredients')
+        .select('*')
+        .lt('stock', 10)
+        .order('stock');
+      
+      if (error) {
+        toast({
+          title: "Error loading inventory",
+          description: error.message,
+          variant: "destructive"
+        });
+        return [];
+      }
+      
+      return data || [];
     }
   });
 
@@ -89,14 +138,18 @@ const Analytics = () => {
       const items = order.items;
       if (Array.isArray(items)) {
         items.forEach(item => {
-          const key = `${item.name}-${item.isHalf}`;
-          if (!itemCounts[key]) {
-            itemCounts[key] = {
-              name: item.name,
-              count: 0
-            };
+          if (typeof item === 'object' && item !== null && 'name' in item && 'quantity' in item) {
+            const name = String(item.name);
+            const quantity = Number(item.quantity);
+            
+            if (!itemCounts[name]) {
+              itemCounts[name] = {
+                name,
+                count: 0
+              };
+            }
+            itemCounts[name].count += quantity;
           }
-          itemCounts[key].count += item.quantity;
         });
       }
     });
@@ -136,6 +189,47 @@ const Analytics = () => {
       }))
       .reverse();
   }
+
+  function calculateItemSales(orderData: any[] | undefined) {
+    if (!orderData?.length || !menuItems?.length) return [];
+
+    // Initialize counters for all menu items
+    const salesByItem: Record<number, { id: number, name: string, count: number, revenue: number }> = {};
+    menuItems.forEach(item => {
+      salesByItem[item.id] = {
+        id: item.id,
+        name: item.name,
+        count: 0,
+        revenue: 0
+      };
+    });
+    
+    // Count occurrences of each item
+    orderData.forEach(order => {
+      const items = order.items;
+      if (Array.isArray(items)) {
+        items.forEach(item => {
+          if (typeof item === 'object' && item !== null && 'menuItemId' in item && 'price' in item && 'quantity' in item) {
+            const id = Number(item.menuItemId);
+            const price = Number(item.price);
+            const quantity = Number(item.quantity);
+            
+            if (salesByItem[id]) {
+              salesByItem[id].count += quantity;
+              salesByItem[id].revenue += price * quantity;
+            }
+          }
+        });
+      }
+    });
+    
+    // Convert to array and sort by count
+    return Object.values(salesByItem)
+      .filter(item => item.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }
+
+  const itemSales = calculateItemSales(orders);
 
   const exportToExcel = async () => {
     if (!orders || orders.length === 0) {
@@ -180,7 +274,12 @@ const Analytics = () => {
     worksheet.addRow(['Order ID', 'Date', 'Items', 'Total']);
     orders.forEach(order => {
       const itemsText = Array.isArray(order.items) 
-        ? order.items.map(item => `${item.quantity}x ${item.name}`).join(', ')
+        ? order.items.map((item: any) => {
+            if (typeof item === 'object' && item !== null && 'name' in item && 'quantity' in item) {
+              return `${item.quantity}x ${item.name}`;
+            }
+            return '';
+          }).filter(Boolean).join(', ')
         : '';
       worksheet.addRow([
         order.id,
@@ -206,6 +305,8 @@ const Analytics = () => {
     });
   };
 
+  const isLoading = ordersLoading || menuItemsLoading || lowStockLoading;
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between gap-4 mb-6">
@@ -228,7 +329,7 @@ const Analytics = () => {
             onClick={exportToExcel}
             disabled={isLoading || !orders || orders.length === 0}
           >
-            <Download className="h-4 w-4 mr-1" />
+            <FileSpreadsheet className="h-4 w-4 mr-1" />
             Export Excel
           </Button>
           <Button 
@@ -237,7 +338,7 @@ const Analytics = () => {
             onClick={exportToPDF}
             disabled={isLoading || !orders || orders.length === 0}
           >
-            <Download className="h-4 w-4 mr-1" />
+            <FileText className="h-4 w-4 mr-1" />
             Export PDF
           </Button>
         </div>
@@ -254,7 +355,9 @@ const Analytics = () => {
       </div>
       
       {isLoading ? (
-        <p>Loading analytics data...</p>
+        <div className="flex justify-center p-8">
+          <p>Loading analytics data...</p>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -301,7 +404,7 @@ const Analytics = () => {
             </Card>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <Card>
               <CardHeader>
                 <CardTitle>Most Popular Items</CardTitle>
@@ -369,19 +472,94 @@ const Analytics = () => {
             </Card>
           </div>
           
-          <div className="mt-6 flex justify-end">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" disabled>
-                    Export Report
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Coming soon</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          <div className="grid grid-cols-1 gap-6 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Item Sales Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {itemSales.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No sales data available</p>
+                ) : (
+                  <>
+                    <div className="h-80 mb-6">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={itemSales.slice(0, 10)}
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <RechartsTooltip formatter={(value, name) => [value, name === "count" ? "Units Sold" : "Revenue (₹)"]} />
+                          <Legend />
+                          <Bar dataKey="count" name="Units Sold" fill="#82ca9d" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    
+                    <div className="border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item Name</TableHead>
+                            <TableHead className="text-right">Units Sold</TableHead>
+                            <TableHead className="text-right">Revenue (₹)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {itemSales.slice(0, 10).map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.name}</TableCell>
+                              <TableCell className="text-right">{item.count}</TableCell>
+                              <TableCell className="text-right">₹{item.revenue.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Low Stock Inventory</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lowStockItems?.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No low stock items found</p>
+                ) : (
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Ingredient</TableHead>
+                          <TableHead>Unit</TableHead>
+                          <TableHead className="text-right">Current Stock</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lowStockItems?.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell>{item.unit}</TableCell>
+                            <TableCell className="text-right">
+                              <span className={item.stock < 5 ? "text-red-500 font-semibold" : "text-amber-500"}>
+                                {item.stock} {item.unit}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
