@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -237,41 +236,6 @@ const POSContainer = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex gap-2 mb-4">
-            <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-1" />
-                  Import Items
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Import Menu Items</DialogTitle>
-                  <DialogDescription>
-                    Follow these steps to import your menu items:
-                    <ol className="list-decimal list-inside mt-2 space-y-2">
-                      <li>Download the CSV template</li>
-                      <li>Fill in your menu items in the template</li>
-                      <li>Save the file as CSV</li>
-                      <li>Upload the filled template (coming soon)</li>
-                    </ol>
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={generateCsvTemplate}
-                    type="button"
-                    className="w-full"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download Template
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
           <MenuList 
             onAddToCart={(item, portionType, note) => addToCart(item, portionType, currentBillGroup, note)} 
             searchTerm={searchTerm} 
