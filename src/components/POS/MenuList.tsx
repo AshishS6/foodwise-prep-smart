@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import EditItemDialog from "./EditItemDialog";
 import PortionTypeSelector from "./PortionTypeSelector";
 import { PortionType } from "@/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 
 interface MenuListProps {
   onAddToCart: (item: any, portionType: PortionType, note?: string) => void;
