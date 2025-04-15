@@ -27,9 +27,21 @@ export function ItemSalesChart({ sales }: ItemSalesChartProps) {
       fullName: item.name // Keep full name for tooltip
     }));
 
+  // Define chart configuration
+  const chartConfig = {
+    revenue: {
+      label: 'Revenue',
+      color: '#8884d8'
+    },
+    count: {
+      label: 'Units Sold',
+      color: '#82ca9d'
+    }
+  };
+
   return (
     <div className="h-[400px]">
-      <ChartContainer>
+      <ChartContainer config={chartConfig}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
