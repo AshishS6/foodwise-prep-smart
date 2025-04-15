@@ -7,13 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export type PortionType = {
-  label: string;
-  price: number;
-  multiplier: number;
-  unit: string;
-};
+import { PortionType } from "@/types";
 
 interface PortionTypeSelectorProps {
   portions: PortionType[];
@@ -47,7 +41,7 @@ const PortionTypeSelector: React.FC<PortionTypeSelectorProps> = ({
         <SelectContent>
           {portions.map((portion) => (
             <SelectItem key={portion.label} value={portion.label}>
-              {portion.label} (₹{portion.price}) - {portion.unit}
+              {portion.label} (₹{portion.price.toFixed(2)}) - {portion.unit}
             </SelectItem>
           ))}
         </SelectContent>
