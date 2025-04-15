@@ -1,4 +1,6 @@
 
+export type MenuCategory = "Main Course" | "Starters" | "Desserts" | "Beverages";
+
 export type PortionType = {
   label: string;     // "Full", "Half", "Glass", "1L", "500ml", "Piece"
   price: number;     // Price for this portion
