@@ -16,13 +16,21 @@ import OrderHistory from "./pages/OrderHistory";
 
 const queryClient = new QueryClient();
 
+// Define role-based permissions
+const ROLE_PERMISSIONS = {
+  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports'],
+  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans'],
+  'Cashier': ['dashboard', 'pos', 'orderhistory'],
+  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports']
+};
+
 // Protected route component with role-based access control
 const ProtectedRoute = ({ 
   children, 
-  allowedRoles = ['Admin', 'Kitchen Staff', 'Cashier'] 
+  requiredPermission
 }: { 
   children: JSX.Element, 
-  allowedRoles?: string[] 
+  requiredPermission: string
 }) => {
   const { session, loading, userRole } = useAuthStore();
   
@@ -40,8 +48,9 @@ const ProtectedRoute = ({
     return children;
   }
 
-  // If roles are specified and user doesn't have an allowed role, restrict access
-  if (allowedRoles.length > 0 && userRole && !allowedRoles.includes(userRole)) {
+  // Check if user's role has the required permission
+  const userPermissions = userRole ? ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS] || [] : [];
+  if (!userPermissions.includes(requiredPermission)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <h1 className="text-2xl font-bold mb-4">Access Restricted</h1>
@@ -83,7 +92,7 @@ const App = () => (
           <Route 
             path="/" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredPermission="dashboard">
                 <Index />
               </ProtectedRoute>
             } 
@@ -91,7 +100,7 @@ const App = () => (
           <Route 
             path="/pos" 
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Cashier']}>
+              <ProtectedRoute requiredPermission="pos">
                 <POS />
               </ProtectedRoute>
             } 
@@ -99,7 +108,7 @@ const App = () => (
           <Route 
             path="/inventory" 
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Kitchen Staff']}>
+              <ProtectedRoute requiredPermission="inventory">
                 <Inventory />
               </ProtectedRoute>
             } 
@@ -107,7 +116,7 @@ const App = () => (
           <Route 
             path="/recipes" 
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Kitchen Staff']}>
+              <ProtectedRoute requiredPermission="recipes">
                 <Recipes />
               </ProtectedRoute>
             } 
@@ -115,7 +124,7 @@ const App = () => (
           <Route 
             path="/prep-plans" 
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Kitchen Staff']}>
+              <ProtectedRoute requiredPermission="prepplans">
                 <PrepPlans />
               </ProtectedRoute>
             } 
@@ -123,7 +132,7 @@ const App = () => (
           <Route 
             path="/order-history" 
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Cashier']}>
+              <ProtectedRoute requiredPermission="orderhistory">
                 <OrderHistory />
               </ProtectedRoute>
             } 
@@ -131,10 +140,20 @@ const App = () => (
           <Route 
             path="/analytics" 
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute requiredPermission="analytics">
                 {/* Analytics page placeholder - we'll implement this shortly */}
                 <div className="container mx-auto p-6">
                   <h1 className="text-2xl font-bold mb-4">Analytics Coming Soon</h1>
+                </div>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/reports" 
+            element={
+              <ProtectedRoute requiredPermission="reports">
+                <div className="container mx-auto p-6">
+                  <h1 className="text-2xl font-bold mb-4">Daily Reports Coming Soon</h1>
                 </div>
               </ProtectedRoute>
             } 
