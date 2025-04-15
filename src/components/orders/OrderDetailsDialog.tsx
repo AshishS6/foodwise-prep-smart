@@ -10,6 +10,7 @@ interface OrderDetailsDialogProps {
     items: Array<{
       name: string;
       quantity: number;
+      price: number;
       isHalf?: boolean;
     }>;
     total: number;
@@ -50,6 +51,9 @@ export const OrderDetailsDialog = ({
                 <div key={index} className="flex justify-between text-sm">
                   <div>
                     {item.quantity}x {item.name} {item.isHalf ? "(Half)" : ""}
+                  </div>
+                  <div>
+                    ₹{(item.price * item.quantity).toFixed(2)}
                   </div>
                 </div>
               ))}
