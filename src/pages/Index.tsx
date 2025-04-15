@@ -152,11 +152,19 @@ const Index = () => {
       description: "View and update daily preparation plans",
       path: "/prep-plans",
       bgColor: "hover:bg-purple-50"
+    },
+    {
+      title: "Analytics & Reports",
+      icon: <BarChart3 className="h-8 w-8 text-indigo-500" />,
+      description: "View sales data and inventory analytics",
+      path: "/analytics",
+      bgColor: "hover:bg-indigo-50"
     }
   ];
 
   // Handler for analytics navigation
   const handleAnalyticsClick = () => {
+    console.log("Navigating to analytics page");
     navigate('/analytics');
   };
 
@@ -262,6 +270,25 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
+
+        <Card
+          className="cursor-pointer hover:bg-indigo-50 transition-colors md:col-span-3"
+          onClick={handleAnalyticsClick}
+        >
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-medium text-indigo-700">Analytics Overview</CardTitle>
+            <BarChart3 className="h-4 w-4 text-indigo-500" />
+          </CardHeader>
+          <CardContent className="flex items-center justify-center p-4">
+            <Button 
+              variant="default" 
+              className="bg-indigo-500 hover:bg-indigo-600"
+              onClick={handleAnalyticsClick}
+            >
+              View Detailed Analytics
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -317,6 +344,19 @@ const Index = () => {
             </TooltipTrigger>
             <TooltipContent side="left">
               <p>Add Recipe</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="rounded-full h-12 w-12 shadow-lg bg-indigo-500 hover:bg-indigo-600" onClick={() => navigate('/analytics')}>
+                <BarChart3 className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>View Analytics</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
