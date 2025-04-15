@@ -85,6 +85,11 @@ export default function EditItemDialog({
   // Update item mutation
   const updateItem = useMutation({
     mutationFn: async () => {
+      // Check if item and item.id exist before proceeding
+      if (!item || item.id === undefined) {
+        throw new Error("No item ID provided for update");
+      }
+
       const { error } = await supabase
         .from('menuitems')
         .update({
@@ -113,7 +118,7 @@ export default function EditItemDialog({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (item.id) {
+    if (item && item.id !== undefined) {
       updateItem.mutate();
     } else {
       createItem.mutate();
@@ -125,9 +130,9 @@ export default function EditItemDialog({
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{item.id ? "Edit Menu Item" : "Add New Menu Item"}</DialogTitle>
+            <DialogTitle>{item && item.id !== undefined ? "Edit Menu Item" : "Add New Menu Item"}</DialogTitle>
             <DialogDescription>
-              {item.id ? "Update the details for this menu item." : "Add a new menu item to your menu."} Click save when you're done.
+              {item && item.id !== undefined ? "Update the details for this menu item." : "Add a new menu item to your menu."} Click save when you're done.
             </DialogDescription>
           </DialogHeader>
           
