@@ -33,13 +33,13 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
   const [newMenuItem, setNewMenuItem] = useState({
     name: "",
     price: 0,
-    halfPrice: 0, // Added half price field
-    supportsHalf: false
+    halfprice: 0, // Changed to match DB column name
+    supportshalf: false // Changed to match DB column name
   });
   
   // File upload state
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [parsedItems, setParsedItems] = useState<{name: string, price: number, halfPrice?: number, supportsHalf: boolean}[]>([]);
+  const [parsedItems, setParsedItems] = useState<{name: string, price: number, halfprice?: number, supportshalf: boolean}[]>([]);
   
   // Fetch menu items
   const { data: menuItems, isLoading } = useQuery({
@@ -65,14 +65,14 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
   
   // Add menu item mutation
   const addMenuItem = useMutation({
-    mutationFn: async (item: { name: string, price: number, halfPrice?: number, supportsHalf: boolean }) => {
+    mutationFn: async (item: { name: string, price: number, halfprice?: number, supportshalf: boolean }) => {
       const { data, error } = await supabase
         .from('menuitems')
         .insert({
           name: item.name,
           price: item.price,
-          halfPrice: item.supportsHalf ? (item.halfPrice || item.price / 2) : null,
-          supportsHalf: item.supportsHalf
+          halfprice: item.supportshalf ? (item.halfprice || item.price / 2) : null,
+          supportshalf: item.supportshalf
         });
       
       if (error) throw new Error(error.message);
@@ -80,7 +80,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
-      setNewMenuItem({ name: "", price: 0, halfPrice: 0, supportsHalf: false });
+      setNewMenuItem({ name: "", price: 0, halfprice: 0, supportshalf: false });
       toast({ 
         title: "Menu item added successfully"
       });
@@ -127,7 +127,7 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
       
       const text = e.target.result.toString();
       const rows = text.split("\n");
-      const items: {name: string, price: number, halfPrice?: number, supportsHalf: boolean}[] = [];
+      const items: {name: string, price: number, halfprice?: number, supportshalf: boolean}[] = [];
       
       // Skip header if it exists
       const startRow = rows[0].toLowerCase().includes("name") && rows[0].toLowerCase().includes("price") ? 1 : 0;
@@ -139,12 +139,12 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
         if (columns.length >= 2) {
           const name = columns[0].trim();
           const price = parseFloat(columns[1].trim());
-          const halfPrice = columns.length > 2 && columns[2].trim() ? parseFloat(columns[2].trim()) : undefined;
-          const supportsHalf = columns.length > 3 ? 
+          const halfprice = columns.length > 2 && columns[2].trim() ? parseFloat(columns[2].trim()) : undefined;
+          const supportshalf = columns.length > 3 ? 
             columns[3].trim().toLowerCase() === 'true' : false;
           
           if (name && !isNaN(price)) {
-            items.push({ name, price, halfPrice, supportsHalf });
+            items.push({ name, price, halfprice, supportshalf });
           }
         }
       }
@@ -229,20 +229,20 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
               <div className="flex items-center space-x-2">
                 <Switch 
                   id="supports-half" 
-                  checked={newMenuItem.supportsHalf}
-                  onCheckedChange={(checked) => setNewMenuItem({ ...newMenuItem, supportsHalf: checked })}
+                  checked={newMenuItem.supportshalf}
+                  onCheckedChange={(checked) => setNewMenuItem({ ...newMenuItem, supportshalf: checked })}
                 />
                 <Label htmlFor="supports-half">Half Portion Available (H)</Label>
               </div>
               
-              {newMenuItem.supportsHalf && (
+              {newMenuItem.supportshalf && (
                 <div className="grid gap-2">
                   <Label htmlFor="half-price">Half Price (₹)</Label>
                   <Input 
                     id="half-price" 
                     type="number" 
-                    value={newMenuItem.halfPrice || ''}
-                    onChange={(e) => setNewMenuItem({ ...newMenuItem, halfPrice: parseFloat(e.target.value) || 0 })}
+                    value={newMenuItem.halfprice || ''}
+                    onChange={(e) => setNewMenuItem({ ...newMenuItem, halfprice: parseFloat(e.target.value) || 0 })}
                     placeholder={`${(newMenuItem.price / 2).toFixed(2)}`}
                   />
                   <p className="text-xs text-muted-foreground">Leave empty to use half of the full price</p>
@@ -334,8 +334,8 @@ const MenuList = ({ onAddToCart }: MenuListProps) => {
                           <tr key={index} className="border-b last:border-0">
                             <td className="px-2 py-1">{item.name}</td>
                             <td className="px-2 py-1 text-right">₹{item.price}</td>
-                            <td className="px-2 py-1 text-right">{item.halfPrice ? `₹${item.halfPrice}` : '-'}</td>
-                            <td className="px-2 py-1 text-center">{item.supportsHalf ? '✓' : '✗'}</td>
+                            <td className="px-2 py-1 text-right">{item.halfprice ? `₹${item.halfprice}` : '-'}</td>
+                            <td className="px-2 py-1 text-center">{item.supportshalf ? '✓' : '✗'}</td>
                           </tr>
                         ))}
                       </tbody>

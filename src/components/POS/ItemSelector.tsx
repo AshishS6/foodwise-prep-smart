@@ -12,16 +12,15 @@ interface ItemSelectorProps {
     id: string | number;
     name: string;
     price: number;
-    halfPrice?: number; // Half price field
-    supportsHalf?: boolean;
+    halfprice?: number; // Updated to match database column name
     supportshalf?: boolean;
   };
   onAddToCart: (item: any, isHalf: boolean) => void;
 }
 
 const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
-  // Support both property names for backward compatibility
-  const supportsHalfPortion = item.supportsHalf || item.supportshalf || false;
+  // Use the correct property name from the database
+  const supportsHalfPortion = item.supportshalf || false;
   const [isHalf, setIsHalf] = useState(false);
   
   const handleAddToCart = () => {
@@ -29,8 +28,8 @@ const ItemSelector = ({ item, onAddToCart }: ItemSelectorProps) => {
   };
   
   // Calculate display price based on selection
-  const displayPrice = isHalf && item.halfPrice 
-    ? item.halfPrice 
+  const displayPrice = isHalf && item.halfprice 
+    ? item.halfprice 
     : isHalf 
       ? item.price / 2 
       : item.price;

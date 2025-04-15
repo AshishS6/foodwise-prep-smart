@@ -39,7 +39,7 @@ const POSContainer = () => {
   // Add item to cart
   const addToCart = (item: any, isHalf: boolean = false) => {
     // Use specific half price if available, otherwise calculate as half of full price
-    const price = isHalf ? (item.halfPrice || item.price / 2) : item.price;
+    const price = isHalf ? (item.halfprice || item.price / 2) : item.price;
     const itemName = isHalf ? `${item.name} (Half)` : item.name;
     
     // Check if this specific item variant already exists in cart
