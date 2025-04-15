@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, FileSpreadsheet } from "lucide-react";
@@ -242,6 +243,98 @@ export default function Analytics() {
       .filter(item => item.count > 0)
       .sort((a, b) => b.count - a.count);
   }
+
+  // Implement exportToExcel function
+  const exportToExcel = async () => {
+    if (!orders || orders.length === 0) {
+      toast({
+        title: "Export Failed",
+        description: "No data to export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      // Create a new workbook
+      const workbook = new ExcelJS.Workbook();
+      
+      // Add Orders Sheet
+      const ordersSheet = workbook.addWorksheet('Sales Data');
+      ordersSheet.columns = [
+        { header: 'Order ID', key: 'id', width: 15 },
+        { header: 'Date', key: 'date', width: 20 },
+        { header: 'Total', key: 'total', width: 15 },
+        { header: 'Items', key: 'itemCount', width: 10 },
+        { header: 'Customer', key: 'customer', width: 20 }
+      ];
+      
+      orders.forEach(order => {
+        ordersSheet.addRow({
+          id: order.id,
+          date: order.timestamp ? format(new Date(order.timestamp), 'yyyy-MM-dd hh:mm a') : 'Unknown',
+          total: `₹${Number(order.total).toFixed(2)}`,
+          itemCount: Array.isArray(order.items) ? order.items.length : 0,
+          customer: order.customerName || 'Walk-in'
+        });
+      });
+      
+      // Add Summary Sheet
+      const summarySheet = workbook.addWorksheet('Summary');
+      summarySheet.columns = [
+        { header: 'Metric', key: 'metric', width: 25 },
+        { header: 'Value', key: 'value', width: 15 }
+      ];
+      
+      summarySheet.addRow({ 
+        metric: 'Time Period', 
+        value: timeRange === 'day' ? 'Today' : 
+               timeRange === 'week' ? 'Last 7 days' : 'Last 30 days' 
+      });
+      summarySheet.addRow({ metric: 'Total Orders', value: totalOrders });
+      summarySheet.addRow({ metric: 'Total Revenue', value: `₹${totalRevenue.toFixed(2)}` });
+      summarySheet.addRow({ metric: 'Average Order Value', value: `₹${averageOrderValue.toFixed(2)}` });
+      
+      // Add Popular Items Sheet
+      if (popularItems.length > 0) {
+        const itemsSheet = workbook.addWorksheet('Popular Items');
+        itemsSheet.columns = [
+          { header: 'Item Name', key: 'name', width: 25 },
+          { header: 'Quantity Sold', key: 'value', width: 15 }
+        ];
+        
+        popularItems.forEach(item => {
+          itemsSheet.addRow(item);
+        });
+      }
+      
+      // Generate Excel file and save it
+      const buffer = await workbook.xlsx.writeBuffer();
+      const fileName = `sales-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+      
+      saveAs(new Blob([buffer]), fileName);
+      
+      toast({
+        title: "Export Successful",
+        description: `Sales data exported to ${fileName}`,
+      });
+    } catch (error) {
+      console.error("Export to Excel failed:", error);
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Implement exportToPDF function
+  const exportToPDF = () => {
+    toast({
+      title: "PDF Export",
+      description: "PDF export is not implemented yet. Please use Excel export.",
+    });
+  };
 
   const isLoading = ordersLoading || menuItemsLoading || lowStockLoading;
 
