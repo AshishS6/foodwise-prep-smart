@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import EditItemDialog from "./EditItemDialog";
 import PortionTypeSelector from "./PortionTypeSelector";
 import { PortionType } from "@/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface MenuListProps {
   onAddToCart: (item: any, portionType: PortionType, note?: string) => void;
@@ -149,14 +149,45 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     });
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const rows = text.split('\n').map(row => row.split(','));
+      const headers = rows[0];
+      const items = rows.slice(1).map(row => {
+        const item: any = {};
+        headers.forEach((header, index) => {
+          item[header.toLowerCase().trim()] = row[index]?.trim();
+        });
+        return item;
+      });
+
+      const existingItems = menuItems || [];
+      const duplicates = items.filter(newItem => 
+        existingItems.some(existingItem => 
+          existingItem.name.toLowerCase() === newItem.name.toLowerCase()
+        )
+      );
+
+      if (duplicates.length > 0) {
+        toast({
+          title: "Error: Duplicate Items",
+          description: `The following items already exist: ${duplicates.map(d => d.name).join(', ')}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
         title: "File received",
         description: "CSV processing will be implemented soon",
       });
-    }
+    };
+    reader.readAsText(file);
   };
 
   if (error) {
