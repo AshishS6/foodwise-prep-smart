@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, FileText, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, FileText, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,18 +10,15 @@ import { useAuthStore } from "@/stores/authStore";
 import { format, subDays } from "date-fns";
 import * as ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, LineChart,
-  Line, XAxis, YAxis, CartesianGrid, BarChart, Bar
-} from "recharts";
-import { 
-  ChartContainer
-} from "@/components/ui/chart";
+import { StatsCard } from "@/components/analytics/StatsCard";
+import { PopularItemsChart } from "@/components/analytics/PopularItemsChart";
+import { SalesTrendChart } from "@/components/analytics/SalesTrendChart";
+import { ItemSalesAnalysis } from "@/components/analytics/ItemSalesAnalysis";
+import { LowStockTable } from "@/components/analytics/LowStockTable";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A259FF', '#FF6B6B'];
 
-const Analytics = () => {
+export default function Analytics() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { session, userRole } = useAuthStore();
@@ -133,6 +128,7 @@ const Analytics = () => {
   
   const popularItems = calculatePopularItems(orders);
   const salesByDay = calculateSalesByDay(orders, timeRange);
+  const itemSales = calculateItemSales(orders);
 
   function getStartDateForRange(range: string): Date {
     const today = new Date();
@@ -247,106 +243,11 @@ const Analytics = () => {
       .sort((a, b) => b.count - a.count);
   }
 
-  const itemSales = calculateItemSales(orders);
-
-  const exportToExcel = async () => {
-    if (!orders || orders.length === 0) {
-      toast({
-        title: "No data to export",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Sales Report');
-      
-      worksheet.mergeCells('A1:D1');
-      const titleCell = worksheet.getCell('A1');
-      titleCell.value = `Payasakkada Sales Report - ${format(new Date(), 'yyyy-MM-dd')}`;
-      titleCell.font = { size: 14, bold: true };
-      titleCell.alignment = { horizontal: 'center' };
-      
-      worksheet.addRow(['']);
-      worksheet.addRow(['Summary']);
-      worksheet.addRow(['Total Revenue', `₹${totalRevenue.toFixed(2)}`]);
-      worksheet.addRow(['Total Orders', totalOrders]);
-      worksheet.addRow(['Average Order Value', `₹${averageOrderValue.toFixed(2)}`]);
-      worksheet.addRow(['']);
-      
-      worksheet.addRow(['Popular Items']);
-      worksheet.addRow(['Item', 'Count']);
-      popularItems.forEach(item => {
-        worksheet.addRow([item.name, item.value]);
-      });
-      worksheet.addRow(['']);
-      
-      worksheet.addRow(['Daily Sales']);
-      worksheet.addRow(['Date', 'Amount']);
-      salesByDay.forEach(day => {
-        worksheet.addRow([day.date, day.amount]);
-      });
-      worksheet.addRow(['']);
-      
-      worksheet.addRow(['Orders']);
-      worksheet.addRow(['Order ID', 'Date', 'Items', 'Total']);
-      orders.forEach(order => {
-        const itemsText = Array.isArray(order.items) 
-          ? order.items.map((item: any) => {
-              if (typeof item === 'object' && item !== null && 'name' in item && 'quantity' in item) {
-                return `${item.quantity}x ${item.name}`;
-              }
-              return '';
-            }).filter(Boolean).join(', ')
-          : '';
-        worksheet.addRow([
-          order.id,
-          order.timestamp ? format(new Date(order.timestamp), 'yyyy-MM-dd HH:mm') : 'N/A',
-          itemsText,
-          `₹${(order.total || 0).toFixed(2)}`
-        ]);
-      });
-      
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, `payasakkada-sales-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-      
-      toast({
-        title: "Report exported successfully",
-      });
-    } catch (error) {
-      console.error("Excel export error:", error);
-      toast({
-        title: "Error exporting report",
-        description: "An error occurred while generating the Excel file.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const exportToPDF = () => {
-    toast({
-      title: "PDF export",
-      description: "PDF export functionality will be implemented soon.",
-    });
-  };
-
   const isLoading = ordersLoading || menuItemsLoading || lowStockLoading;
 
   if (ordersError) {
     console.error("Orders fetch error:", ordersError);
   }
-
-  const chartConfig = {
-    sales: {
-      amount: { color: "#8884d8", label: "Sales" }
-    },
-    items: {
-      count: { color: "#82ca9d", label: "Units Sold" },
-      revenue: { color: "#8884d8", label: "Revenue" }
-    }
-  };
 
   return (
     <div className="container mx-auto p-4">
@@ -410,205 +311,39 @@ const Analytics = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Revenue
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">₹{totalRevenue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {timeRange === 'day' ? 'Today' : 
-                   timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Average Order Value
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">₹{averageOrderValue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{totalOrders} orders</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Orders
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalOrders}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {timeRange === 'day' ? 'Today' : 
-                   timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
-                </p>
-              </CardContent>
-            </Card>
+            <StatsCard
+              title="Total Revenue"
+              value={`₹${totalRevenue.toFixed(2)}`}
+              subtitle={timeRange === 'day' ? 'Today' : 
+                       timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
+            />
+            <StatsCard
+              title="Average Order Value"
+              value={`₹${averageOrderValue.toFixed(2)}`}
+              subtitle={`${totalOrders} orders`}
+            />
+            <StatsCard
+              title="Total Orders"
+              value={String(totalOrders)}
+              subtitle={timeRange === 'day' ? 'Today' : 
+                       timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
+            />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Most Popular Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {popularItems.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No data available</p>
-                ) : (
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={popularItems}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                        >
-                          {popularItems.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Sales Trend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {salesByDay.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No data available</p>
-                ) : (
-                  <div className="h-80">
-                    <ChartContainer config={chartConfig.sales}>
-                      <LineChart
-                        data={salesByDay}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Line
-                          type="monotone"
-                          dataKey="amount"
-                          name="amount"
-                          stroke="#8884d8"
-                          activeDot={{ r: 8 }}
-                        />
-                      </LineChart>
-                    </ChartContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <PopularItemsChart items={popularItems} />
+            <SalesTrendChart data={salesByDay} />
           </div>
           
           <div className="grid grid-cols-1 gap-6 mb-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Item Sales Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {itemSales.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No sales data available</p>
-                ) : (
-                  <>
-                    <div className="h-80 mb-6">
-                      <ChartContainer config={chartConfig.items}>
-                        <BarChart
-                          data={itemSales.slice(0, 10)}
-                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Bar dataKey="count" name="count" fill="#82ca9d" />
-                        </BarChart>
-                      </ChartContainer>
-                    </div>
-                    
-                    <div className="border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item Name</TableHead>
-                            <TableHead className="text-right">Units Sold</TableHead>
-                            <TableHead className="text-right">Revenue (₹)</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {itemSales.slice(0, 10).map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell className="font-medium">{item.name}</TableCell>
-                              <TableCell className="text-right">{item.count}</TableCell>
-                              <TableCell className="text-right">₹{item.revenue.toFixed(2)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <ItemSalesAnalysis sales={itemSales} />
           </div>
           
           <div className="grid grid-cols-1 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Low Stock Inventory</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!lowStockItems || lowStockItems.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No low stock items found</p>
-                ) : (
-                  <div className="border rounded-md">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Ingredient</TableHead>
-                          <TableHead>Unit</TableHead>
-                          <TableHead className="text-right">Current Stock</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {lowStockItems.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.name}</TableCell>
-                            <TableCell>{item.unit}</TableCell>
-                            <TableCell className="text-right">
-                              <span className={item.stock < 5 ? "text-red-500 font-semibold" : "text-amber-500"}>
-                                {item.stock} {item.unit}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <LowStockTable items={lowStockItems || []} />
           </div>
         </>
       )}
     </div>
   );
-};
-
-export default Analytics;
+}
