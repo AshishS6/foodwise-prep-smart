@@ -123,6 +123,32 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     onAddToCart(item, portionType);
   };
 
+  const generateCsvTemplate = () => {
+    const header = "Name,Price,Category,SupportHalf,HalfPrice,Unit\n";
+    const sampleRows = [
+      "Chicken Biriyani,130,Main Course,TRUE,70,plate",
+      "Masala Dosa,90,Main Course,TRUE,50,plate",
+      "Coffee,15,Beverages,FALSE,,cup"
+    ].join("\n");
+    
+    const csvContent = header + sampleRows;
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'menu_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Template Downloaded",
+      description: "Fill the template with your menu items and upload it back",
+    });
+  };
+
   if (error) {
     return <p className="text-destructive">Error loading menu items: {error.message}</p>;
   }
@@ -145,13 +171,38 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
             <Plus className="h-4 w-4 mr-2" />
             Add Item
           </Button>
-          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+          <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" onClick={generateCsvTemplate}>
                 <Upload className="h-4 w-4 mr-2" />
                 Import Items
               </Button>
             </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Import Menu Items</DialogTitle>
+                <DialogDescription>
+                  Follow these steps to import your menu items:
+                  <ol className="list-decimal list-inside mt-2 space-y-2">
+                    <li>Download the CSV template</li>
+                    <li>Fill in your menu items in the template</li>
+                    <li>Save the file as CSV</li>
+                    <li>Upload the filled template (coming soon)</li>
+                  </ol>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={generateCsvTemplate}
+                  type="button"
+                  className="w-full"
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Download Template
+                </Button>
+              </DialogFooter>
+            </DialogContent>
           </Dialog>
         </div>
       </div>

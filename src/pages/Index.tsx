@@ -167,7 +167,7 @@ const Index = () => {
       <header className="flex justify-between items-center py-8 px-6 bg-white/50 backdrop-blur-sm border-b">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Payasakkada Prep Smart
+            Payasakkada
           </h1>
           <p className="text-muted-foreground mt-1">Smart restaurant management system</p>
         </div>
