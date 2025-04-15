@@ -39,12 +39,17 @@ const Analytics = () => {
       });
       return;
     }
+    
+    // Add console log to debug
+    console.log("Analytics page - Session:", session?.user?.email);
+    console.log("Analytics page - User role:", userRole);
   }, [session, userRole, navigate, toast]);
 
-  const { data: orders, isLoading: ordersLoading } = useQuery({
+  const { data: orders, isLoading: ordersLoading, error: ordersError } = useQuery({
     queryKey: ['orders', timeRange],
     queryFn: async () => {
       const startDate = getStartDateForRange(timeRange);
+      console.log("Fetching orders from:", startDate.toISOString());
       
       const { data, error } = await supabase
         .from('orders')
@@ -53,6 +58,7 @@ const Analytics = () => {
         .order('timestamp', { ascending: false });
       
       if (error) {
+        console.error("Error fetching orders:", error);
         toast({
           title: "Error loading orders",
           description: error.message,
@@ -61,18 +67,22 @@ const Analytics = () => {
         return [];
       }
       
+      console.log("Orders fetched:", data?.length || 0);
       return data || [];
-    }
+    },
+    refetchOnWindowFocus: false,
   });
 
   const { data: menuItems, isLoading: menuItemsLoading } = useQuery({
     queryKey: ['menuItems'],
     queryFn: async () => {
+      console.log("Fetching menu items");
       const { data, error } = await supabase
         .from('menuitems')
         .select('*');
       
       if (error) {
+        console.error("Error fetching menu items:", error);
         toast({
           title: "Error loading menu items",
           description: error.message,
@@ -81,13 +91,16 @@ const Analytics = () => {
         return [];
       }
       
+      console.log("Menu items fetched:", data?.length || 0);
       return data || [];
-    }
+    },
+    refetchOnWindowFocus: false,
   });
 
   const { data: lowStockItems, isLoading: lowStockLoading } = useQuery({
     queryKey: ['lowStockItems'],
     queryFn: async () => {
+      console.log("Fetching low stock items");
       const { data, error } = await supabase
         .from('ingredients')
         .select('*')
@@ -95,6 +108,7 @@ const Analytics = () => {
         .order('stock');
       
       if (error) {
+        console.error("Error fetching ingredients:", error);
         toast({
           title: "Error loading inventory",
           description: error.message,
@@ -103,11 +117,13 @@ const Analytics = () => {
         return [];
       }
       
+      console.log("Low stock items fetched:", data?.length || 0);
       return data || [];
-    }
+    },
+    refetchOnWindowFocus: false,
   });
 
-  const totalRevenue = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
+  const totalRevenue = orders?.reduce((sum, order) => sum + (typeof order.total === 'number' ? order.total : 0), 0) || 0;
   const averageOrderValue = orders?.length ? totalRevenue / orders.length : 0;
   const totalOrders = orders?.length || 0;
   
@@ -176,9 +192,11 @@ const Analytics = () => {
     }
     
     orderData.forEach(order => {
-      const orderDate = format(new Date(order.timestamp), 'yyyy-MM-dd');
-      if (salesMap[orderDate] !== undefined) {
-        salesMap[orderDate] += order.total;
+      if (order.timestamp) {
+        const orderDate = format(new Date(order.timestamp), 'yyyy-MM-dd');
+        if (salesMap[orderDate] !== undefined) {
+          salesMap[orderDate] += order.total || 0;
+        }
       }
     });
     
@@ -240,62 +258,71 @@ const Analytics = () => {
       return;
     }
 
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Sales Report');
-    
-    worksheet.mergeCells('A1:D1');
-    const titleCell = worksheet.getCell('A1');
-    titleCell.value = `Payasakkada Sales Report - ${format(new Date(), 'yyyy-MM-dd')}`;
-    titleCell.font = { size: 14, bold: true };
-    titleCell.alignment = { horizontal: 'center' };
-    
-    worksheet.addRow(['']);
-    worksheet.addRow(['Summary']);
-    worksheet.addRow(['Total Revenue', `₹${totalRevenue.toFixed(2)}`]);
-    worksheet.addRow(['Total Orders', totalOrders]);
-    worksheet.addRow(['Average Order Value', `₹${averageOrderValue.toFixed(2)}`]);
-    worksheet.addRow(['']);
-    
-    worksheet.addRow(['Popular Items']);
-    worksheet.addRow(['Item', 'Count']);
-    popularItems.forEach(item => {
-      worksheet.addRow([item.name, item.value]);
-    });
-    worksheet.addRow(['']);
-    
-    worksheet.addRow(['Daily Sales']);
-    worksheet.addRow(['Date', 'Amount']);
-    salesByDay.forEach(day => {
-      worksheet.addRow([day.date, day.amount]);
-    });
-    worksheet.addRow(['']);
-    
-    worksheet.addRow(['Orders']);
-    worksheet.addRow(['Order ID', 'Date', 'Items', 'Total']);
-    orders.forEach(order => {
-      const itemsText = Array.isArray(order.items) 
-        ? order.items.map((item: any) => {
-            if (typeof item === 'object' && item !== null && 'name' in item && 'quantity' in item) {
-              return `${item.quantity}x ${item.name}`;
-            }
-            return '';
-          }).filter(Boolean).join(', ')
-        : '';
-      worksheet.addRow([
-        order.id,
-        format(new Date(order.timestamp), 'yyyy-MM-dd HH:mm'),
-        itemsText,
-        `₹${order.total.toFixed(2)}`
-      ]);
-    });
-    
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `payasakkada-sales-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-    
-    toast({
-      title: "Report exported successfully",
-    });
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Sales Report');
+      
+      worksheet.mergeCells('A1:D1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = `Payasakkada Sales Report - ${format(new Date(), 'yyyy-MM-dd')}`;
+      titleCell.font = { size: 14, bold: true };
+      titleCell.alignment = { horizontal: 'center' };
+      
+      worksheet.addRow(['']);
+      worksheet.addRow(['Summary']);
+      worksheet.addRow(['Total Revenue', `₹${totalRevenue.toFixed(2)}`]);
+      worksheet.addRow(['Total Orders', totalOrders]);
+      worksheet.addRow(['Average Order Value', `₹${averageOrderValue.toFixed(2)}`]);
+      worksheet.addRow(['']);
+      
+      worksheet.addRow(['Popular Items']);
+      worksheet.addRow(['Item', 'Count']);
+      popularItems.forEach(item => {
+        worksheet.addRow([item.name, item.value]);
+      });
+      worksheet.addRow(['']);
+      
+      worksheet.addRow(['Daily Sales']);
+      worksheet.addRow(['Date', 'Amount']);
+      salesByDay.forEach(day => {
+        worksheet.addRow([day.date, day.amount]);
+      });
+      worksheet.addRow(['']);
+      
+      worksheet.addRow(['Orders']);
+      worksheet.addRow(['Order ID', 'Date', 'Items', 'Total']);
+      orders.forEach(order => {
+        const itemsText = Array.isArray(order.items) 
+          ? order.items.map((item: any) => {
+              if (typeof item === 'object' && item !== null && 'name' in item && 'quantity' in item) {
+                return `${item.quantity}x ${item.name}`;
+              }
+              return '';
+            }).filter(Boolean).join(', ')
+          : '';
+        worksheet.addRow([
+          order.id,
+          order.timestamp ? format(new Date(order.timestamp), 'yyyy-MM-dd HH:mm') : 'N/A',
+          itemsText,
+          `₹${(order.total || 0).toFixed(2)}`
+        ]);
+      });
+      
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `payasakkada-sales-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      
+      toast({
+        title: "Report exported successfully",
+      });
+    } catch (error) {
+      console.error("Excel export error:", error);
+      toast({
+        title: "Error exporting report",
+        description: "An error occurred while generating the Excel file.",
+        variant: "destructive"
+      });
+    }
   };
 
   const exportToPDF = () => {
@@ -306,6 +333,11 @@ const Analytics = () => {
   };
 
   const isLoading = ordersLoading || menuItemsLoading || lowStockLoading;
+
+  // If there's an error fetching orders, display it
+  if (ordersError) {
+    console.error("Orders fetch error:", ordersError);
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -357,6 +389,14 @@ const Analytics = () => {
       {isLoading ? (
         <div className="flex justify-center p-8">
           <p>Loading analytics data...</p>
+        </div>
+      ) : orders && orders.length === 0 ? (
+        <div className="text-center py-10">
+          <h2 className="text-xl font-semibold mb-3">No Orders Found</h2>
+          <p className="text-muted-foreground mb-6">
+            There are no orders for the selected time period.
+          </p>
+          <Button onClick={() => navigate('/pos')}>Create New Order</Button>
         </div>
       ) : (
         <>
@@ -455,7 +495,7 @@ const Analytics = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="date" />
                         <YAxis />
-                        <RechartsTooltip formatter={(value) => [`₹${value}`, 'Sales']} />
+                        <RechartsTooltip formatter={(value: any) => [`₹${value}`, 'Sales']} />
                         <Legend />
                         <Line
                           type="monotone"
@@ -491,7 +531,7 @@ const Analytics = () => {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
-                          <RechartsTooltip formatter={(value, name) => [value, name === "count" ? "Units Sold" : "Revenue (₹)"]} />
+                          <RechartsTooltip formatter={(value: any, name: any) => [value, name === "count" ? "Units Sold" : "Revenue (₹)"]} />
                           <Legend />
                           <Bar dataKey="count" name="Units Sold" fill="#82ca9d" />
                         </BarChart>
@@ -530,7 +570,7 @@ const Analytics = () => {
                 <CardTitle>Low Stock Inventory</CardTitle>
               </CardHeader>
               <CardContent>
-                {lowStockItems?.length === 0 ? (
+                {!lowStockItems || lowStockItems.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">No low stock items found</p>
                 ) : (
                   <div className="border rounded-md">
@@ -543,7 +583,7 @@ const Analytics = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {lowStockItems?.map((item) => (
+                        {lowStockItems.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.name}</TableCell>
                             <TableCell>{item.unit}</TableCell>

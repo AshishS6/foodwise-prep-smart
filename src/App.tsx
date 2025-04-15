@@ -15,7 +15,16 @@ import NotFound from "./pages/NotFound";
 import OrderHistory from "./pages/OrderHistory";
 import Analytics from "./pages/Analytics";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient with specific configuration for better debugging
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 // Define role-based permissions
 const ROLE_PERMISSIONS = {
