@@ -61,9 +61,9 @@ export default function EditItemDialog({
           name: itemData.name,
           price: itemData.price,
           supportshalf: itemData.supportshalf,
-          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null // Convert to number here
+          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null
         })
-        .eq('id', item.id);
+        .eq('id', String(item.id)); // Convert id to string for consistent comparison
       
       if (error) throw error;
     },
