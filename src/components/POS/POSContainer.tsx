@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -90,13 +91,16 @@ const POSContainer = () => {
     }
   };
 
+  // Properly attach and detach event listeners
   useEffect(() => {
+    console.log("Setting up keyboard event listeners");
     window.addEventListener('keydown', handleKeyDown);
     
     return () => {
+      console.log("Cleaning up keyboard event listeners");
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [billGroups]);
+  }, [billGroups]); // Make sure to re-attach when billGroups changes
 
   const logActivity = async (action: string, entityType: string, entityId: string, details: any = {}) => {
     try {
@@ -409,7 +413,10 @@ const POSContainer = () => {
             variant="ghost" 
             size="sm" 
             className="mr-2"
-            onClick={() => navigate('/')}
+            onClick={() => {
+              console.log("Navigating back to home");
+              navigate('/');
+            }}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
