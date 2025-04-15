@@ -1,7 +1,14 @@
 
 export type PortionType = {
-  label: string;       // e.g., "Full", "Half", "Glass"
-  price: number;       // Price for this portion
-  multiplier: number;  // How much of the base item is used
-  unit: string;        // Unit of measurement (Plate, Glass, Liter)
+  label: string;     // "Full", "Half", "Glass", "1L", "500ml", "Piece"
+  price: number;     // Price for this portion
+  unit: string;      // "plate", "glass", "liter", "piece"
+  multiplier: number;  // For inventory calculations (e.g., 1, 0.5, 0.15 for glass)
+};
+
+export type MenuItem = {
+  id: number;
+  name: string;
+  category: string;
+  portions: PortionType[];
 };

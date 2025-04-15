@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -19,9 +18,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { X, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PortionType } from "@/types";
 
 interface EditItemDialogProps {
   isOpen: boolean;
@@ -29,14 +30,13 @@ interface EditItemDialogProps {
   item: {
     id?: string | number;
     name: string;
-    price: number;
-    halfprice?: number;
-    supportshalf?: boolean;
     category?: string;
+    portions?: PortionType[];
   };
 }
 
 const categories = ['Main Course', 'Starters', 'Desserts', 'Beverages'] as const;
+const units = ['plate', 'glass', 'liter', 'piece'] as const;
 
 export default function EditItemDialog({
   isOpen,
@@ -45,26 +45,47 @@ export default function EditItemDialog({
 }: EditItemDialogProps) {
   const [itemData, setItemData] = useState({
     name: "",
-    price: 0,
-    supportshalf: false,
-    halfprice: 0,
     category: "Main Course" as typeof categories[number],
+    portions: [] as PortionType[],
   });
   
   const queryClient = useQueryClient();
   
-  // Reset form data when item changes
   useEffect(() => {
     if (item) {
       setItemData({
         name: item.name,
-        price: item.price,
-        supportshalf: item.supportshalf || false,
-        halfprice: item.halfprice || item.price / 2,
         category: (item.category as typeof categories[number]) || "Main Course",
+        portions: item.portions || [],
       });
     }
   }, [item]);
+
+  const addPortion = () => {
+    setItemData({
+      ...itemData,
+      portions: [
+        ...itemData.portions,
+        { label: "", price: 0, unit: "plate", multiplier: 1 }
+      ],
+    });
+  };
+
+  const removePortion = (index: number) => {
+    setItemData({
+      ...itemData,
+      portions: itemData.portions.filter((_, i) => i !== index),
+    });
+  };
+
+  const updatePortion = (index: number, field: keyof PortionType, value: string | number) => {
+    const newPortions = [...itemData.portions];
+    newPortions[index] = {
+      ...newPortions[index],
+      [field]: field === "price" || field === "multiplier" ? Number(value) : value,
+    };
+    setItemData({ ...itemData, portions: newPortions });
+  };
 
   // Create new item mutation
   const createItem = useMutation({
@@ -73,10 +94,8 @@ export default function EditItemDialog({
         .from('menuitems')
         .insert([{
           name: itemData.name,
-          price: itemData.price,
-          supportshalf: itemData.supportshalf,
-          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null,
-          category: itemData.category
+          category: itemData.category,
+          portions: itemData.portions,
         }]);
       
       if (error) throw error;
@@ -106,10 +125,8 @@ export default function EditItemDialog({
         .from('menuitems')
         .update({
           name: itemData.name,
-          price: Number(itemData.price),
-          supportshalf: itemData.supportshalf,
-          halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null,
-          category: itemData.category
+          category: itemData.category,
+          portions: itemData.portions,
         })
         .eq('id', typeof item.id === 'string' ? parseInt(item.id, 10) : item.id);
       
@@ -131,6 +148,16 @@ export default function EditItemDialog({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (itemData.portions.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one portion type",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (item && item.id !== undefined) {
       updateItem.mutate();
     } else {
@@ -182,50 +209,91 @@ export default function EditItemDialog({
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">
-                Price (₹)
-              </Label>
-              <Input
-                id="price"
-                type="number"
-                value={itemData.price}
-                onChange={(e) => setItemData({ ...itemData, price: Number(e.target.value) })}
-                className="col-span-3"
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="supportshalf" className="text-right">
-                Support Half?
-              </Label>
-              <div className="flex items-center col-span-3 space-x-2">
-                <Switch
-                  id="supportshalf"
-                  checked={itemData.supportshalf}
-                  onCheckedChange={(checked) => setItemData({ ...itemData, supportshalf: checked })}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {itemData.supportshalf ? "Yes" : "No"}
-                </span>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Portions</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addPortion}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Portion
+                </Button>
               </div>
+              
+              {itemData.portions.map((portion, index) => (
+                <div key={index} className="grid gap-2 p-3 border rounded-lg relative">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2 h-6 w-6 p-0"
+                    onClick={() => removePortion(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor={`portion-${index}-label`} className="text-right">
+                      Label
+                    </Label>
+                    <Input
+                      id={`portion-${index}-label`}
+                      value={portion.label}
+                      onChange={(e) => updatePortion(index, "label", e.target.value)}
+                      className="col-span-3"
+                      placeholder="e.g., Full, Half, Glass"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor={`portion-${index}-price`} className="text-right">
+                      Price (₹)
+                    </Label>
+                    <Input
+                      id={`portion-${index}-price`}
+                      type="number"
+                      value={portion.price}
+                      onChange={(e) => updatePortion(index, "price", e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor={`portion-${index}-unit`} className="text-right">
+                      Unit
+                    </Label>
+                    <Select
+                      value={portion.unit}
+                      onValueChange={(value) => updatePortion(index, "unit", value)}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {units.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor={`portion-${index}-multiplier`} className="text-right">
+                      Multiplier
+                    </Label>
+                    <Input
+                      id={`portion-${index}-multiplier`}
+                      type="number"
+                      step="0.01"
+                      value={portion.multiplier}
+                      onChange={(e) => updatePortion(index, "multiplier", e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            
-            {itemData.supportshalf && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="halfprice" className="text-right">
-                  Half Price (₹)
-                </Label>
-                <Input
-                  id="halfprice"
-                  type="number"
-                  value={itemData.halfprice}
-                  onChange={(e) => setItemData({ ...itemData, halfprice: Number(e.target.value) })}
-                  className="col-span-3"
-                />
-              </div>
-            )}
           </div>
           
           <DialogFooter>
@@ -234,7 +302,7 @@ export default function EditItemDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={createItem.isPending || updateItem.isPending || !itemData.name || itemData.price <= 0}
+              disabled={createItem.isPending || updateItem.isPending || !itemData.name || itemData.portions.length === 0}
             >
               {createItem.isPending || updateItem.isPending ? "Saving..." : "Save Changes"}
             </Button>
