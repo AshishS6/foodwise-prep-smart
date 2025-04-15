@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +27,6 @@ const Index = () => {
   const { user, userRole } = useAuthStore();
   const timeZone = "Asia/Kolkata";
 
-  // Fetch today's sales data
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
     queryKey: ['todaySales'],
     queryFn: async () => {
@@ -56,7 +54,6 @@ const Index = () => {
     }
   });
 
-  // Fetch low stock ingredients
   const { data: lowStockIngredients, isLoading: ingredientsLoading, dataUpdatedAt: ingredientsUpdatedAt } = useQuery({
     queryKey: ['lowStockIngredients'],
     queryFn: async () => {
@@ -80,7 +77,6 @@ const Index = () => {
     }
   });
 
-  // Fetch tomorrow's prep plan
   const { data: prepPlan, isLoading: prepLoading, dataUpdatedAt: prepUpdatedAt } = useQuery({
     queryKey: ['tomorrowPrepPlan'],
     queryFn: async () => {
@@ -108,7 +104,6 @@ const Index = () => {
     }
   });
 
-  // Format time since update
   const getTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
     
@@ -118,7 +113,6 @@ const Index = () => {
     return `${Math.floor(seconds / 86400)} days ago`;
   };
 
-  // Navigation tiles for main modules with color coding
   const modules = [
     {
       title: "POS / Sales Entry",
@@ -154,8 +148,8 @@ const Index = () => {
     <div className="container mx-auto p-4 space-y-6">
       <header className="flex justify-between items-center py-6">
         <div>
-          <h1 className="text-3xl font-bold">FoodWise Prep Smart</h1>
-          <p className="text-muted-foreground">Smart kitchen management system</p>
+          <h1 className="text-3xl font-bold">Payasakkada Prep Smart</h1>
+          <p className="text-muted-foreground">Smart restaurant management system</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
@@ -168,7 +162,6 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Dashboard Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card 
           className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -251,7 +244,6 @@ const Index = () => {
         </Card>
       </div>
 
-      {/* Main Navigation */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {modules.map((module) => (
           <Button
@@ -269,7 +261,6 @@ const Index = () => {
         ))}
       </div>
 
-      {/* Quick Action Buttons - Only shown on home page */}
       <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
         <TooltipProvider>
           <Tooltip>
