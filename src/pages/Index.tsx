@@ -184,10 +184,10 @@ const Index = () => {
             ) : (
               <>
                 <p className="text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
-                <p className="text-sm text-muted-foreground">{todaySales?.orders.length || 0} orders today</p>
+                <p className="text-sm text-muted-foreground">{todaySales?.orders?.length || 0} orders today</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  <span>Last updated {getTimeAgo(salesUpdatedAt)}</span>
+                  <span>Last updated {salesUpdatedAt ? getTimeAgo(salesUpdatedAt) : "never"}</span>
                 </div>
               </>
             )}
@@ -205,15 +205,13 @@ const Index = () => {
           <CardContent>
             {ingredientsLoading ? (
               <p>Loading...</p>
-            ) : lowStockIngredients?.length === 0 ? (
-              <p>All ingredients are well stocked</p>
             ) : (
               <div>
-                <p className="text-3xl font-bold text-orange-500">{lowStockIngredients?.length}</p>
+                <p className="text-3xl font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
                 <p className="text-sm text-muted-foreground">ingredients need restocking</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  <span>Last updated {getTimeAgo(ingredientsUpdatedAt)}</span>
+                  <span>Last updated {ingredientsUpdatedAt ? getTimeAgo(ingredientsUpdatedAt) : "never"}</span>
                 </div>
               </div>
             )}
@@ -231,7 +229,7 @@ const Index = () => {
           <CardContent>
             {prepLoading ? (
               <p>Loading...</p>
-            ) : prepPlan?.length === 0 ? (
+            ) : prepPlan && prepPlan.length === 0 ? (
               <div className="space-y-2">
                 <p>No prep plan for tomorrow yet</p>
                 <Button size="sm" onClick={() => navigate('/prep-plans')} className="flex items-center">
@@ -241,11 +239,11 @@ const Index = () => {
               </div>
             ) : (
               <div>
-                <p className="text-3xl font-bold text-purple-700">{prepPlan?.length}</p>
+                <p className="text-3xl font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
                 <p className="text-sm text-muted-foreground">items in tomorrow's prep plan</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  <span>Last updated {getTimeAgo(prepUpdatedAt)}</span>
+                  <span>Last updated {prepUpdatedAt ? getTimeAgo(prepUpdatedAt) : "never"}</span>
                 </div>
               </div>
             )}
