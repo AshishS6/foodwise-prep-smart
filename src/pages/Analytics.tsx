@@ -15,8 +15,7 @@ import { saveAs } from 'file-saver';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, LineChart,
-  Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  Legend, BarChart, Bar
+  Line, XAxis, YAxis, CartesianGrid, BarChart, Bar
 } from "recharts";
 import { 
   ChartContainer, 
@@ -484,7 +483,6 @@ const Analytics = () => {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Legend />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -509,14 +507,6 @@ const Analytics = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="date" />
                         <YAxis />
-                        <ChartTooltip 
-                          content={(props) => (
-                            <ChartTooltipContent 
-                              {...props} 
-                            />
-                          )}
-                        />
-                        <ChartLegend content={(props) => <ChartLegendContent {...props} />} />
                         <Line
                           type="monotone"
                           dataKey="amount"
@@ -524,6 +514,7 @@ const Analytics = () => {
                           stroke="#8884d8"
                           activeDot={{ r: 8 }}
                         />
+                        <ChartTooltip />
                       </LineChart>
                     </ChartContainer>
                   </div>
@@ -551,15 +542,8 @@ const Analytics = () => {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
-                          <ChartTooltip 
-                            content={(props) => (
-                              <ChartTooltipContent 
-                                {...props}
-                              />
-                            )}
-                          />
-                          <ChartLegend content={(props) => <ChartLegendContent {...props} />} />
                           <Bar dataKey="count" name="count" fill="#82ca9d" />
+                          <ChartTooltip />
                         </BarChart>
                       </ChartContainer>
                     </div>
