@@ -179,16 +179,27 @@ const Index = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            👤 {user?.email || "User"} | {userRole || "Guest"}
+            👤 {userName || user?.email || "User"} | {userRole || "Guest"}
           </div>
-          <Button 
-            variant="outline" 
-            className="flex gap-2" 
-            onClick={handleAnalyticsClick}
-          >
-            <BarChart3 className="h-5 w-5 text-primary" />
-            Analytics
-          </Button>
+          {userRole === 'Admin' ? (
+            <Button 
+              variant="outline" 
+              className="flex gap-2" 
+              onClick={() => navigate('/team-management')}
+            >
+              <UserPlus className="h-5 w-5 text-primary" />
+              Team Management
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="flex gap-2" 
+              onClick={() => navigate('/analytics')}
+            >
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Analytics
+            </Button>
+          )}
         </div>
       </header>
 
@@ -280,27 +291,6 @@ const Index = () => {
               )}
             </CardContent>
           </Card>
-
-          {userRole === 'Admin' && (
-            <Card
-              className="cursor-pointer hover:bg-indigo-50 transition-colors"
-              onClick={() => navigate('/team-management')}
-            >
-              <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-lg font-medium text-indigo-700">Team Management</CardTitle>
-                <UserPlus className="h-4 w-4 text-indigo-500" />
-              </CardHeader>
-              <CardContent className="flex items-center justify-center p-4">
-                <Button 
-                  variant="default" 
-                  className="bg-indigo-500 hover:bg-indigo-600"
-                  onClick={() => navigate('/team-management')}
-                >
-                  Manage Team
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -319,18 +309,6 @@ const Index = () => {
             </Button>
           ))}
         </div>
-
-        {userRole === 'Admin' && (
-          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => navigate('/team-management')}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Team Management</CardTitle>
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">Manage team members and access rights</p>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
           <TooltipProvider>
