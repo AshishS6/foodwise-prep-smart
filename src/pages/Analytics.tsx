@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, FileText, FileSpreadsheet } from "lucide-react";
@@ -19,7 +18,13 @@ import {
   Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   Legend, BarChart, Bar
 } from "recharts";
-import { ChartContainer, ChartTooltipContent, ChartLegendContent } from "@/components/ui/chart";
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent, 
+  ChartLegend,
+  ChartLegendContent
+} from "@/components/ui/chart";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A259FF', '#FF6B6B'];
 
@@ -45,7 +50,6 @@ const Analytics = () => {
       return;
     }
     
-    // Add console log to debug
     console.log("Analytics page - Session:", session?.user?.email);
     console.log("Analytics page - User role:", userRole);
   }, [session, userRole, navigate, toast]);
@@ -133,7 +137,6 @@ const Analytics = () => {
   const totalOrders = orders?.length || 0;
   
   const popularItems = calculatePopularItems(orders);
-  
   const salesByDay = calculateSalesByDay(orders, timeRange);
 
   function getStartDateForRange(range: string): Date {
@@ -216,7 +219,6 @@ const Analytics = () => {
   function calculateItemSales(orderData: any[] | undefined) {
     if (!orderData?.length || !menuItems?.length) return [];
 
-    // Initialize counters for all menu items
     const salesByItem: Record<number, { id: number, name: string, count: number, revenue: number }> = {};
     menuItems.forEach(item => {
       salesByItem[item.id] = {
@@ -227,7 +229,6 @@ const Analytics = () => {
       };
     });
     
-    // Count occurrences of each item
     orderData.forEach(order => {
       const items = order.items;
       if (Array.isArray(items)) {
@@ -246,7 +247,6 @@ const Analytics = () => {
       }
     });
     
-    // Convert to array and sort by count
     return Object.values(salesByItem)
       .filter(item => item.count > 0)
       .sort((a, b) => b.count - a.count);
@@ -339,12 +339,10 @@ const Analytics = () => {
 
   const isLoading = ordersLoading || menuItemsLoading || lowStockLoading;
 
-  // If there's an error fetching orders, display it
   if (ordersError) {
     console.error("Orders fetch error:", ordersError);
   }
 
-  // Define chart configs for consistency
   const chartConfig = {
     sales: {
       amount: { color: "#8884d8", label: "Sales" }
@@ -511,15 +509,14 @@ const Analytics = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="date" />
                         <YAxis />
-                        <RechartsTooltip 
-                          content={props => (
+                        <ChartTooltip 
+                          content={(props) => (
                             <ChartTooltipContent 
                               {...props} 
-                              formatter={(value: any) => [`₹${value}`, 'Sales']} 
                             />
-                          )} 
+                          )}
                         />
-                        <Legend content={(props) => <ChartLegendContent {...props} />} />
+                        <ChartLegend content={(props) => <ChartLegendContent {...props} />} />
                         <Line
                           type="monotone"
                           dataKey="amount"
@@ -554,16 +551,14 @@ const Analytics = () => {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
-                          <RechartsTooltip 
-                            content={props => (
+                          <ChartTooltip 
+                            content={(props) => (
                               <ChartTooltipContent 
-                                {...props} 
-                                formatter={(value: any, name: any) => 
-                                  [value, name === "count" ? "Units Sold" : "Revenue (₹)"]} 
+                                {...props}
                               />
-                            )} 
+                            )}
                           />
-                          <Legend content={(props) => <ChartLegendContent {...props} />} />
+                          <ChartLegend content={(props) => <ChartLegendContent {...props} />} />
                           <Bar dataKey="count" name="count" fill="#82ca9d" />
                         </BarChart>
                       </ChartContainer>
