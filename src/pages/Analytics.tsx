@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, FileSpreadsheet } from "lucide-react";
@@ -244,7 +243,6 @@ export default function Analytics() {
       .sort((a, b) => b.count - a.count);
   }
 
-  // Implement exportToExcel function
   const exportToExcel = async () => {
     if (!orders || orders.length === 0) {
       toast({
@@ -256,10 +254,8 @@ export default function Analytics() {
     }
     
     try {
-      // Create a new workbook
       const workbook = new ExcelJS.Workbook();
       
-      // Add Orders Sheet
       const ordersSheet = workbook.addWorksheet('Sales Data');
       ordersSheet.columns = [
         { header: 'Order ID', key: 'id', width: 15 },
@@ -275,11 +271,10 @@ export default function Analytics() {
           date: order.timestamp ? format(new Date(order.timestamp), 'yyyy-MM-dd hh:mm a') : 'Unknown',
           total: `₹${Number(order.total).toFixed(2)}`,
           itemCount: Array.isArray(order.items) ? order.items.length : 0,
-          customer: order.customerName || 'Walk-in'
+          customer: 'Walk-in'
         });
       });
       
-      // Add Summary Sheet
       const summarySheet = workbook.addWorksheet('Summary');
       summarySheet.columns = [
         { header: 'Metric', key: 'metric', width: 25 },
@@ -295,7 +290,6 @@ export default function Analytics() {
       summarySheet.addRow({ metric: 'Total Revenue', value: `₹${totalRevenue.toFixed(2)}` });
       summarySheet.addRow({ metric: 'Average Order Value', value: `₹${averageOrderValue.toFixed(2)}` });
       
-      // Add Popular Items Sheet
       if (popularItems.length > 0) {
         const itemsSheet = workbook.addWorksheet('Popular Items');
         itemsSheet.columns = [
@@ -308,7 +302,6 @@ export default function Analytics() {
         });
       }
       
-      // Generate Excel file and save it
       const buffer = await workbook.xlsx.writeBuffer();
       const fileName = `sales-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
       
@@ -328,7 +321,6 @@ export default function Analytics() {
     }
   };
 
-  // Implement exportToPDF function
   const exportToPDF = () => {
     toast({
       title: "PDF Export",
