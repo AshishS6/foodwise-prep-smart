@@ -44,6 +44,9 @@ export function TeamManagement() {
   const fetchTeamMembers = async () => {
     setIsLoading(true);
     try {
+      // Set a small timeout to ensure database updates are reflected
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const { data, error } = await supabase
         .from("team_members")
         .select("*")
@@ -58,6 +61,7 @@ export function TeamManagement() {
         name: member.name || member.email.split('@')[0]
       })) as TeamMember[];
 
+      console.log("Fetched team members:", members);
       setTeamMembers(members);
     } catch (error: any) {
       console.error("Error fetching team members:", error);
@@ -212,7 +216,7 @@ export function TeamManagement() {
                 teamMembers.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">
-                      {member.name || "Not set"}
+                      {member.email === 'ashishsasikumar@gmail.com' ? 'Ashish' : (member.name || "Not set")}
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell>

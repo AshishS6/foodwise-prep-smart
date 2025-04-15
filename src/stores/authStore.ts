@@ -37,12 +37,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ session: data.session, user: data.user });
       
       if (data.user) {
-        // Get user role
         const { data: roleData } = await supabase.rpc('get_user_role', { 
           user_uuid: data.user.id 
         });
         
-        // Get user profile information
         const { data: teamMemberData, error: profileError } = await supabase
           .from('team_members')
           .select('name, role')
@@ -54,7 +52,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           userName: teamMemberData?.name || data.user.email.split('@')[0]
         });
         
-        // Special handling for the specific email
         if (data.user.email === 'ashishsasikumar@gmail.com') {
           set({ userRole: 'Admin', userName: 'Ashish' });
         }
@@ -64,7 +61,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // Update other methods similarly to handle name correctly
   signUp: async (email: string, password: string, name: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -77,7 +73,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ session: data.session, user: data.user, userName: name });
       
       if (data.user) {
-        // Count existing team members
         const { count, error: countError } = await supabase
           .from('team_members')
           .select('*', { count: 'exact', head: true });
@@ -85,7 +80,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (countError) throw countError;
         
         if (count === 0) {
-          // First user becomes admin
           const { error: roleError } = await supabase
             .from('team_members')
             .insert({
@@ -98,7 +92,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (roleError) throw roleError;
           set({ userRole: 'Admin' });
         } else {
-          // Check if user was invited
           const { data: invitedUser, error: inviteError } = await supabase
             .from('team_members')
             .select('role')
@@ -106,7 +99,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .maybeSingle();
             
           if (!inviteError && invitedUser) {
-            // Update invited user with name and user_id
             const { error: updateError } = await supabase
               .from('team_members')
               .update({ 
@@ -118,14 +110,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             if (updateError) throw updateError;
             set({ userRole: invitedUser.role });
           } else {
-            // Register as a regular user if not invited
             const { error: insertError } = await supabase
               .from('team_members')
               .insert({
                 user_id: data.user.id,
                 email: data.user.email,
                 name: name,
-                role: 'Cashier' // Default role for new users
+                role: 'Cashier'
               });
               
             if (insertError) throw insertError;
@@ -152,26 +143,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ loading: true });
       
-      // Set up auth state change listener
       supabase.auth.onAuthStateChange((event, session) => {
         set({ session, user: session?.user ?? null });
         
         if (session?.user) {
-          // Get user role
-          supabase.rpc('get_user_role', { user_uuid: session.user.id })
-            .then(({ data: roleData }) => {
-              set({ userRole: roleData || 'Guest' });
-            });
-            
-          // Get user name from team_members table
-          supabase
-            .from('team_members')
-            .select('name')
-            .eq('user_id', session.user.id)
-            .maybeSingle()
-            .then(({ data: nameData }) => {
-              set({ userName: nameData?.name || null });
-            });
+          if (session.user.email === 'ashishsasikumar@gmail.com') {
+            set({ userRole: 'Admin', userName: 'Ashish' });
+          } else {
+            supabase.rpc('get_user_role', { user_uuid: session.user.id })
+              .then(({ data: roleData }) => {
+                set({ userRole: roleData || 'Guest' });
+              });
+              
+            supabase
+              .from('team_members')
+              .select('name')
+              .eq('user_id', session.user.id)
+              .maybeSingle()
+              .then(({ data: nameData }) => {
+                set({ userName: nameData?.name || null });
+              });
+          }
         }
       });
       
@@ -181,12 +173,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       let userName = null;
       
       if (session?.user) {
-        // Special handling for the specific email
         if (session.user.email === 'ashishsasikumar@gmail.com') {
           userRole = 'Admin';
           userName = 'Ashish';
           
-          // Check if user exists in team_members
           const { data: userData, error: userError } = await supabase
             .from('team_members')
             .select('*')
@@ -194,7 +184,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .maybeSingle();
             
           if (!userData) {
-            // Add the user as admin if not already in team_members
             const { error: insertError } = await supabase
               .from('team_members')
               .insert({
@@ -207,8 +196,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             if (insertError) {
               console.error('Failed to add admin user:', insertError);
             }
-          } else if (!userData.name) {
-            // Update the name if it's not set
+          } else if (!userData.name || userData.name !== 'Ashish') {
             const { error: updateError } = await supabase
               .from('team_members')
               .update({ name: 'Ashish' })
@@ -219,7 +207,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             }
           }
         } else {
-          // For other users, get their role normally
           const { data: roleData } = await supabase.rpc('get_user_role', { 
             user_uuid: session.user.id 
           });
@@ -256,7 +243,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     
     try {
-      // Check if user already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('team_members')
         .select('*')
@@ -269,13 +255,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error(`User with email ${email} is already a team member`);
       }
       
-      // Add the user to team_members
       const { error: teamError } = await supabase
         .from('team_members')
         .insert({
           email: email,
           role: role,
-          user_id: '00000000-0000-0000-0000-000000000000' // Placeholder until user signs up
+          user_id: '00000000-0000-0000-0000-000000000000'
         });
         
       if (teamError) throw teamError;
@@ -287,7 +272,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         { role }
       );
       
-      // Send invitation email (in a real app you'd implement this)
       return;
     } catch (error: any) {
       throw new Error(error.message);
@@ -296,12 +280,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   
   makeUserAdmin: async (email: string) => {
     try {
-      // For the specific user, we'll handle it directly with a simplified approach
       if (email === 'ashishsasikumar@gmail.com') {
         const { data: userData } = await supabase.auth.getUser();
         
         if (userData && userData.user) {
-          // Try to update if exists, or insert if it doesn't
           const { error: upsertError } = await supabase
             .from('team_members')
             .upsert({
@@ -320,7 +302,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }
       
-      // Regular flow for other users
       const { data: userData, error: userError } = await supabase
         .from('team_members')
         .select('user_id')
@@ -330,7 +311,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (userError) throw userError;
       
       if (!userData) {
-        // Try to find the user id from auth
         try {
           const { data: authData } = await supabase.auth.getUser();
           
@@ -345,13 +325,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               
             if (insertError) throw insertError;
           } else {
-            // Fallback for when we can't find the user
             const { error: insertError } = await supabase
               .from('team_members')
               .insert({
                 email: email,
                 role: 'Admin',
-                user_id: '00000000-0000-0000-0000-000000000000' // Placeholder
+                user_id: '00000000-0000-0000-0000-000000000000'
               });
               
             if (insertError) throw insertError;
@@ -360,7 +339,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           console.error('Error finding user:', error);
         }
       } else {
-        // Update existing user role
         const { error: updateError } = await supabase
           .from('team_members')
           .update({ role: 'Admin' })

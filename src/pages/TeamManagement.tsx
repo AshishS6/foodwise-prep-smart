@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 export default function TeamManagementPage() {
   const navigate = useNavigate();
-  const { session, userRole } = useAuthStore();
+  const { session, userRole, userName } = useAuthStore();
   
   useEffect(() => {
     if (!session) {
@@ -33,7 +33,12 @@ export default function TeamManagementPage() {
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back
         </Button>
-        <h1 className="text-2xl font-bold">Team Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Team Management</h1>
+          <p className="text-muted-foreground">
+            {userName ? `Logged in as ${userName}` : ""} {userRole ? `(${userRole})` : ""}
+          </p>
+        </div>
       </div>
       
       <TeamManagement />

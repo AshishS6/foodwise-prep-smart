@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -164,12 +165,6 @@ const Index = () => {
     }
   ];
 
-  // Handler for analytics navigation
-  const handleAnalyticsClick = () => {
-    console.log("Navigating to analytics page");
-    navigate('/analytics');
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center py-6">
@@ -179,7 +174,7 @@ const Index = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            👤 {userName || user?.email || "User"} | {userRole || "Guest"}
+            👤 {userName || "User"} | {userRole || "Guest"}
           </div>
           {userRole === 'Admin' ? (
             <Button 
@@ -207,7 +202,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="text-sm text-muted-foreground">
-            {userName ? `Welcome, ${userName}` : session?.user?.email} ({userRole})
+            {userName ? `Welcome, ${userName}` : ""} {userRole ? `(${userRole})` : ""}
           </div>
         </div>
         
@@ -293,7 +288,7 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
           {modules.map((module) => (
             <Button
               key={module.title}
