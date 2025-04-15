@@ -19,7 +19,9 @@ const POS = () => {
       <Helmet>
         <title>Point of Sale - Payasakkada</title>
       </Helmet>
-      <POSContainer />
+      <div className="bg-background min-h-screen">
+        <POSContainer />
+      </div>
     </>
   );
 };

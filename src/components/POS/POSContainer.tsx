@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, AlertCircle, Split, FileText } from "lucide-react";
+import { ArrowLeft, BarChart3, AlertCircle, Split, FileText, Upload } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,13 +16,19 @@ import { CartItem } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const POSContainer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { user, userRole } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [importName, setImportName] = useState("");
+  const [importPrice, setImportPrice] = useState("");
+  const [importCategory, setImportCategory] = useState("Main Course");
   
   const {
     cart,
@@ -173,6 +180,67 @@ const POSContainer = () => {
     deleteBillGroup(groupToDelete, cart, setCart);
   };
 
+  const handleImportItem = async () => {
+    if (!importName || !importPrice) {
+      toast({
+        title: "Missing information",
+        description: "Please fill all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const price = parseFloat(importPrice);
+    if (isNaN(price)) {
+      toast({
+        title: "Invalid price",
+        description: "Please enter a valid price",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('menuitems')
+        .insert([
+          {
+            name: importName,
+            price: price,
+            category: importCategory,
+            portions: JSON.stringify([
+              {
+                label: 'Full',
+                price: price,
+                unit: 'plate',
+                multiplier: 1
+              }
+            ])
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Item added successfully",
+        description: `${importName} has been added to the menu`,
+        variant: "default"
+      });
+      
+      // Reset form and refresh menu items
+      setImportName("");
+      setImportPrice("");
+      setImportCategory("Main Course");
+    } catch (error: any) {
+      toast({
+        title: "Failed to add item",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-6">
@@ -193,15 +261,12 @@ const POSContainer = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">👤 {user?.email} | {userRole}</span>
-          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="ml-2" 
                   onClick={() => {
                     console.log("Navigating to analytics page");
                     navigate('/analytics');
@@ -216,6 +281,74 @@ const POSContainer = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Upload className="h-4 w-4 mr-1" />
+                Import Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Menu Item</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="name"
+                    value={importName}
+                    onChange={(e) => setImportName(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="price" className="text-right">
+                    Price (₹)
+                  </Label>
+                  <Input
+                    id="price"
+                    value={importPrice}
+                    onChange={(e) => setImportPrice(e.target.value)}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    Category
+                  </Label>
+                  <Select
+                    value={importCategory}
+                    onValueChange={setImportCategory}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Main Course">Main Course</SelectItem>
+                      <SelectItem value="Starters">Starters</SelectItem>
+                      <SelectItem value="Desserts">Desserts</SelectItem>
+                      <SelectItem value="Beverages">Beverages</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  onClick={handleImportItem}
+                >
+                  Add Item
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -228,7 +361,7 @@ const POSContainer = () => {
           />
         </div>
 
-        <div className="bg-muted/30 rounded-lg p-4 border">
+        <div className="bg-muted/30 rounded-lg p-4 border shadow-sm">
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold">Bill Groups</h2>
@@ -343,21 +476,19 @@ const POSContainer = () => {
               <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
               Missing Recipe Data
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              <div>
-                <p>The following items do not have recipe data defined:</p>
-                <ul className="mt-2 list-disc pl-5">
-                  {missingRecipes.map((item, index) => (
-                    <li key={index} className="mb-1">{item}</li>
-                  ))}
-                </ul>
-                <p className="mt-2">
-                  Without recipe data, inventory stock will not be automatically reduced.
-                  Do you want to continue anyway?
-                </p>
-              </div>
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <AlertDialogDescription>
+            The following items do not have recipe data defined:
+            <ul className="mt-2 list-disc pl-5">
+              {missingRecipes.map((item, index) => (
+                <li key={index} className="mb-1">{item}</li>
+              ))}
+            </ul>
+            <p className="mt-2">
+              Without recipe data, inventory stock will not be automatically reduced.
+              Do you want to continue anyway?
+            </p>
+          </AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => {

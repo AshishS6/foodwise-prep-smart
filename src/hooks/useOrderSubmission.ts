@@ -112,19 +112,20 @@ export const useOrderSubmission = () => {
           }
         }
         
-        return { success: true };
+        return { success: true, processedGroups: groupedBills.map(g => g.groupId) };
       } catch (error: any) {
         console.error("Error submitting order:", error);
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ 
-        title: "All orders submitted successfully",
+        title: "Order submitted successfully",
         variant: "default"
       });
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
       queryClient.invalidateQueries({ queryKey: ['todaySales'] });
+      queryClient.invalidateQueries({ queryKey: ['menuItems'] });
     },
     onError: (error: Error) => {
       toast({
