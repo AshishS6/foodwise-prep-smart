@@ -63,7 +63,7 @@ export default function EditItemDialog({
           supportshalf: itemData.supportshalf,
           halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null
         })
-        .eq('id', String(item.id)); // Convert id to string for consistent comparison
+        .eq('id', typeof item.id === 'string' ? parseInt(item.id) : item.id); // Convert string to number if needed
       
       if (error) throw error;
     },
