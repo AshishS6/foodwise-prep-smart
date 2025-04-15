@@ -93,26 +93,33 @@ export const useOrderSubmission = () => {
         for (const bill of groupedBills) {
           const { data: orderData, error: orderError } = await supabase
             .from('orders')
-            .insert([{
+            .insert({
               items: bill.items,
               total: bill.total,
               timestamp: new Date().toISOString()
-            }])
+            })
             .select();
 
           if (orderError) throw new Error(orderError.message);
           
-          logActivity('create', 'order', orderData?.[0]?.id?.toString(), {
-            total: bill.total,
-            items: bill.items.length
-          });
-          
-          for (const item of bill.items) {
-            await updateIngredientStocks(item);
+          if (orderData && orderData[0]) {
+            logActivity('create', 'order', orderData[0].id.toString(), {
+              total: bill.total,
+              items: bill.items.length
+            });
+            
+            // Process ingredients for each item
+            for (const item of bill.items) {
+              await updateIngredientStocks(item);
+            }
           }
         }
         
-        return { success: true, processedGroups: groupedBills.map(g => g.groupId) };
+        // Return processed groups to identify which items to remove from cart
+        return { 
+          success: true, 
+          processedGroups: groupedBills.map(g => g.groupId)
+        };
       } catch (error: any) {
         console.error("Error submitting order:", error);
         throw error;
@@ -123,6 +130,8 @@ export const useOrderSubmission = () => {
         title: "Order submitted successfully",
         variant: "default"
       });
+      
+      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
       queryClient.invalidateQueries({ queryKey: ['todaySales'] });
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });

@@ -8,7 +8,6 @@ const POS = () => {
     // Log when POS component is mounted
     console.log("POS page loaded");
     
-    // This helps in diagnosing any rendering issues
     return () => {
       console.log("POS page unmounted");
     };

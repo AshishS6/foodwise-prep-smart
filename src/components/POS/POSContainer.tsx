@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, AlertCircle, Split, FileText, Upload } from "lucide-react";
+import { ArrowLeft, BarChart3, AlertCircle, Split, FileText, Upload, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +15,7 @@ import { CartItem } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +28,7 @@ const POSContainer = () => {
   const [importName, setImportName] = useState("");
   const [importPrice, setImportPrice] = useState("");
   const [importCategory, setImportCategory] = useState("Main Course");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   const {
     cart,
@@ -121,10 +121,16 @@ const POSContainer = () => {
       setShowMissingRecipeAlert(true);
     } else {
       submitOrder.mutate(cart, {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setCart([]);
           setBillGroups([1]);
           setCurrentBillGroup(1);
+          
+          toast({
+            title: "Order completed successfully",
+            description: "All bills have been processed",
+            variant: "default"
+          });
         }
       });
     }
@@ -150,14 +156,21 @@ const POSContainer = () => {
       setShowMissingRecipeAlert(true);
     } else {
       submitOrder.mutate(currentGroupItems, {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setCart(cart.filter(item => item.billGroup !== currentBillGroup));
+          
           if (billGroups.length > 1) {
             setBillGroups(billGroups.filter(g => g !== currentBillGroup));
             setCurrentBillGroup(billGroups.filter(g => g !== currentBillGroup)[0]);
           } else {
             setCurrentBillGroup(1);
           }
+          
+          toast({
+            title: "Bill completed",
+            description: `Bill #${currentBillGroup} has been processed`,
+            variant: "default"
+          });
         }
       });
     }
@@ -201,23 +214,23 @@ const POSContainer = () => {
     }
 
     try {
+      const portions = [
+        {
+          label: 'Full',
+          price: price,
+          unit: 'plate',
+          multiplier: 1
+        }
+      ];
+
       const { data, error } = await supabase
         .from('menuitems')
-        .insert([
-          {
-            name: importName,
-            price: price,
-            category: importCategory,
-            portions: JSON.stringify([
-              {
-                label: 'Full',
-                price: price,
-                unit: 'plate',
-                multiplier: 1
-              }
-            ])
-          }
-        ])
+        .insert({
+          name: importName,
+          price: price,
+          category: importCategory,
+          portions: JSON.stringify(portions)
+        })
         .select();
 
       if (error) throw error;
@@ -228,10 +241,10 @@ const POSContainer = () => {
         variant: "default"
       });
       
-      // Reset form and refresh menu items
       setImportName("");
       setImportPrice("");
       setImportCategory("Main Course");
+      setImportDialogOpen(false);
     } catch (error: any) {
       toast({
         title: "Failed to add item",
@@ -239,6 +252,27 @@ const POSContainer = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const generateCsvTemplate = () => {
+    const header = "Name,Price,Category\n";
+    const sampleRows = [
+      "Chicken Biriyani,130,Main Course",
+      "Masala Dosa,90,Main Course",
+      "Coffee,15,Beverages"
+    ].join("\n");
+    
+    const csvContent = header + sampleRows;
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'menu_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -282,7 +316,7 @@ const POSContainer = () => {
             </Tooltip>
           </TooltipProvider>
           
-          <Dialog>
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <Upload className="h-4 w-4 mr-1" />
@@ -292,6 +326,9 @@ const POSContainer = () => {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Add New Menu Item</DialogTitle>
+                <DialogDescription>
+                  Add a new item to your menu or download a template to bulk import items.
+                </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -303,6 +340,7 @@ const POSContainer = () => {
                     value={importName}
                     onChange={(e) => setImportName(e.target.value)}
                     className="col-span-3"
+                    placeholder="Item name"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -317,6 +355,7 @@ const POSContainer = () => {
                     min="0"
                     step="0.01"
                     className="col-span-3"
+                    placeholder="0.00"
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -339,14 +378,23 @@ const POSContainer = () => {
                   </Select>
                 </div>
               </div>
-              <div className="flex justify-end">
+              <DialogFooter className="flex justify-between items-center">
+                <Button
+                  variant="outline"
+                  onClick={generateCsvTemplate}
+                  type="button"
+                  className="mr-auto"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Download Template
+                </Button>
                 <Button
                   type="submit"
                   onClick={handleImportItem}
                 >
                   Add Item
                 </Button>
-              </div>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
