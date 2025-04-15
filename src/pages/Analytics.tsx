@@ -18,11 +18,7 @@ import {
   Line, XAxis, YAxis, CartesianGrid, BarChart, Bar
 } from "recharts";
 import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent, 
-  ChartLegend,
-  ChartLegendContent
+  ChartContainer
 } from "@/components/ui/chart";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A259FF', '#FF6B6B'];
@@ -514,7 +510,6 @@ const Analytics = () => {
                           stroke="#8884d8"
                           activeDot={{ r: 8 }}
                         />
-                        <ChartTooltip />
                       </LineChart>
                     </ChartContainer>
                   </div>
@@ -543,7 +538,6 @@ const Analytics = () => {
                           <XAxis dataKey="name" />
                           <YAxis />
                           <Bar dataKey="count" name="count" fill="#82ca9d" />
-                          <ChartTooltip />
                         </BarChart>
                       </ChartContainer>
                     </div>
