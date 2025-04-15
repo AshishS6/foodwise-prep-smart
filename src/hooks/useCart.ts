@@ -71,6 +71,10 @@ export const useCart = () => {
     setCart(updatedCart);
   };
 
+  const clearCart = () => {
+    setCart([]);
+  };
+
   return {
     cart,
     setCart,
@@ -78,6 +82,7 @@ export const useCart = () => {
     updateQuantity,
     removeFromCart,
     updateNote,
-    setItemQuantity
+    setItemQuantity,
+    clearCart
   };
 };

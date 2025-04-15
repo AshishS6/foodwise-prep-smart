@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { CartItem } from "@/types";
+import { format } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 
 export const useOrderSubmission = () => {
   const [missingRecipes, setMissingRecipes] = useState<string[]>([]);
@@ -75,6 +77,10 @@ export const useOrderSubmission = () => {
   const submitOrder = useMutation({
     mutationFn: async (cart: CartItem[]) => {
       try {
+        const timeZone = 'Asia/Kolkata'; // IST timezone
+        const currentTime = utcToZonedTime(new Date(), timeZone);
+        const formattedTime = format(currentTime, "yyyy-MM-dd'T'HH:mm:ssXXX");
+        
         const groupedBills = cart.reduce((acc, item) => {
           const group = acc.find(g => g.groupId === item.billGroup);
           if (group) {
@@ -96,7 +102,7 @@ export const useOrderSubmission = () => {
             .insert({
               items: bill.items,
               total: bill.total,
-              timestamp: new Date().toISOString()
+              timestamp: formattedTime
             })
             .select();
 

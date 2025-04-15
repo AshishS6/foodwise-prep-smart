@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { useBillGroups } from "@/hooks/useBillGroups";
 import { useOrderSubmission } from "@/hooks/useOrderSubmission";
 import MenuList from "./MenuList";
 import OrderList from "./OrderList";
-import { CartItem } from "@/types";
+import { CartItem, PortionType } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -19,6 +20,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
+
+type MenuCategory = "Main Course" | "Starters" | "Desserts" | "Beverages";
 
 const POSContainer = () => {
   const navigate = useNavigate();
@@ -27,8 +32,13 @@ const POSContainer = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [importName, setImportName] = useState("");
   const [importPrice, setImportPrice] = useState("");
-  const [importCategory, setImportCategory] = useState("Main Course");
+  const [importCategory, setImportCategory] = useState<MenuCategory>("Main Course");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [portions, setPortions] = useState<PortionType[]>([
+    { label: 'Full', price: 0, unit: 'plate', multiplier: 1 }
+  ]);
+  const [showPortionOptions, setShowPortionOptions] = useState(false);
+  const [halfPortionPrice, setHalfPortionPrice] = useState("");
   
   const {
     cart,
@@ -122,6 +132,7 @@ const POSContainer = () => {
     } else {
       submitOrder.mutate(cart, {
         onSuccess: (data) => {
+          // Clear cart after successful submission
           setCart([]);
           setBillGroups([1]);
           setCurrentBillGroup(1);
@@ -157,6 +168,7 @@ const POSContainer = () => {
     } else {
       submitOrder.mutate(currentGroupItems, {
         onSuccess: (data) => {
+          // Remove the processed items from cart
           setCart(cart.filter(item => item.billGroup !== currentBillGroup));
           
           if (billGroups.length > 1) {
@@ -193,6 +205,21 @@ const POSContainer = () => {
     deleteBillGroup(groupToDelete, cart, setCart);
   };
 
+  useEffect(() => {
+    // Update portions when price changes
+    const price = parseFloat(importPrice) || 0;
+    const updatedPortions: PortionType[] = [
+      { label: 'Full', price: price, unit: 'plate', multiplier: 1 }
+    ];
+
+    if (showPortionOptions && halfPortionPrice) {
+      const halfPrice = parseFloat(halfPortionPrice) || 0;
+      updatedPortions.push({ label: 'Half', price: halfPrice, unit: 'plate', multiplier: 0.5 });
+    }
+
+    setPortions(updatedPortions);
+  }, [importPrice, halfPortionPrice, showPortionOptions]);
+
   const handleImportItem = async () => {
     if (!importName || !importPrice) {
       toast({
@@ -214,22 +241,15 @@ const POSContainer = () => {
     }
 
     try {
-      const portions = [
-        {
-          label: 'Full',
-          price: price,
-          unit: 'plate',
-          multiplier: 1
-        }
-      ];
-
       const { data, error } = await supabase
         .from('menuitems')
         .insert({
           name: importName,
           price: price,
           category: importCategory,
-          portions: JSON.stringify(portions)
+          portions: JSON.stringify(portions),
+          supportshalf: showPortionOptions,
+          halfprice: showPortionOptions ? parseFloat(halfPortionPrice) || null : null
         })
         .select();
 
@@ -244,7 +264,12 @@ const POSContainer = () => {
       setImportName("");
       setImportPrice("");
       setImportCategory("Main Course");
+      setShowPortionOptions(false);
+      setHalfPortionPrice("");
       setImportDialogOpen(false);
+      
+      // Refresh menu items
+      queryClient.invalidateQueries({ queryKey: ['menuItems'] });
     } catch (error: any) {
       toast({
         title: "Failed to add item",
@@ -255,11 +280,11 @@ const POSContainer = () => {
   };
 
   const generateCsvTemplate = () => {
-    const header = "Name,Price,Category\n";
+    const header = "Name,Price,Category,SupportHalf,HalfPrice\n";
     const sampleRows = [
-      "Chicken Biriyani,130,Main Course",
-      "Masala Dosa,90,Main Course",
-      "Coffee,15,Beverages"
+      "Chicken Biriyani,130,Main Course,TRUE,70",
+      "Masala Dosa,90,Main Course,TRUE,50",
+      "Coffee,15,Beverages,FALSE,"
     ].join("\n");
     
     const csvContent = header + sampleRows;
@@ -364,7 +389,7 @@ const POSContainer = () => {
                   </Label>
                   <Select
                     value={importCategory}
-                    onValueChange={setImportCategory}
+                    onValueChange={(val) => setImportCategory(val as MenuCategory)}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select category" />
@@ -377,6 +402,39 @@ const POSContainer = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right col-span-4">
+                    <div className="flex items-center justify-end space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="supportHalf"
+                        checked={showPortionOptions}
+                        onChange={(e) => setShowPortionOptions(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <Label htmlFor="supportHalf">
+                        Support Half Portion
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                {showPortionOptions && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="halfPrice" className="text-right">
+                      Half Price (₹)
+                    </Label>
+                    <Input
+                      id="halfPrice"
+                      value={halfPortionPrice}
+                      onChange={(e) => setHalfPortionPrice(e.target.value)}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="col-span-3"
+                      placeholder="0.00"
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter className="flex justify-between items-center">
                 <Button
