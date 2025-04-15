@@ -131,7 +131,7 @@ const POSContainer = () => {
       setShowMissingRecipeAlert(true);
     } else {
       submitOrder.mutate(cart, {
-        onSuccess: (data) => {
+        onSuccess: () => {
           setCart([]);
           setBillGroups([1]);
           setCurrentBillGroup(1);
@@ -166,7 +166,7 @@ const POSContainer = () => {
       setShowMissingRecipeAlert(true);
     } else {
       submitOrder.mutate(currentGroupItems, {
-        onSuccess: (data) => {
+        onSuccess: () => {
           setCart(cart.filter(item => item.billGroup !== currentBillGroup));
           
           if (billGroups.length > 1) {
@@ -276,11 +276,11 @@ const POSContainer = () => {
   };
 
   const generateCsvTemplate = () => {
-    const header = "Name,Price,Category,SupportHalf,HalfPrice\n";
+    const header = "Name,Price,Category,SupportHalf,HalfPrice,Unit\n";
     const sampleRows = [
-      "Chicken Biriyani,130,Main Course,TRUE,70",
-      "Masala Dosa,90,Main Course,TRUE,50",
-      "Coffee,15,Beverages,FALSE,"
+      "Chicken Biriyani,130,Main Course,TRUE,70,plate",
+      "Masala Dosa,90,Main Course,TRUE,50,plate",
+      "Coffee,15,Beverages,FALSE,,cup"
     ].join("\n");
     
     const csvContent = header + sampleRows;
@@ -594,7 +594,14 @@ const POSContainer = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
-              submitOrder.mutate(cart);
+              submitOrder.mutate(cart, {
+                onSuccess: () => {
+                  setCart([]);
+                  setBillGroups([1]);
+                  setCurrentBillGroup(1);
+                  setShowMissingRecipeAlert(false);
+                }
+              });
             }}>
               Continue Anyway
             </AlertDialogAction>
