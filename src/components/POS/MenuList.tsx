@@ -58,7 +58,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   // Filter menu items based on search term and category
   const filteredItems = menuItems?.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(localSearch.toLowerCase());
-    const matchesCategory = activeCategory === "All Items" || true; // TODO: Add category field to menu items
+    const matchesCategory = activeCategory === "All Items" || item.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -67,7 +67,8 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
       name: "",
       price: 0,
       supportshalf: false,
-      halfprice: 0
+      halfprice: 0,
+      category: "Main Course"
     });
     setIsDialogOpen(true);
   };
@@ -143,7 +144,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredItems?.length === 0 ? (
             <p className="col-span-full text-center py-8 text-muted-foreground">
-              No menu items found. Try adjusting your search.
+              No menu items found. Try adjusting your search or category.
             </p>
           ) : (
             filteredItems?.map((item) => (
@@ -153,6 +154,9 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
                     <div>
                       <h3 className="font-medium">{item.name}</h3>
                       <p className="text-muted-foreground">₹{item.price.toFixed(2)}</p>
+                      <span className="inline-block text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 mt-1">
+                        {item.category}
+                      </span>
                     </div>
                     <Button 
                       variant="ghost" 

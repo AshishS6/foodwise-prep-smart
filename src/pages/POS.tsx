@@ -6,7 +6,7 @@ const POS = () => {
   return (
     <>
       <Helmet>
-        <title>Point of Sale - FoodWise</title>
+        <title>Point of Sale - Payasakkada</title>
       </Helmet>
       <POSContainer />
     </>
