@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BarChart3, AlertCircle, Split, FileText, Upload, Download } from "lucide-react";
+import { ArrowLeft, Upload, Download } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,18 +11,11 @@ import { useBillGroups } from "@/hooks/useBillGroups";
 import { useOrderSubmission } from "@/hooks/useOrderSubmission";
 import MenuList from "./MenuList";
 import OrderList from "./OrderList";
-import { CartItem, PortionType } from "@/types";
+import { CartItem, MenuCategory, PortionType } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-
-type MenuCategory = "Main Course" | "Starters" | "Desserts" | "Beverages";
 
 const POSContainer = () => {
   const navigate = useNavigate();
@@ -30,16 +23,8 @@ const POSContainer = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [importName, setImportName] = useState("");
-  const [importPrice, setImportPrice] = useState("");
-  const [importCategory, setImportCategory] = useState<MenuCategory>("Main Course");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [portions, setPortions] = useState<PortionType[]>([
-    { label: 'Full', price: 0, unit: 'plate', multiplier: 1 }
-  ]);
-  const [showPortionOptions, setShowPortionOptions] = useState(false);
-  const [halfPortionPrice, setHalfPortionPrice] = useState("");
-  
+
   const {
     cart,
     setCart,
@@ -203,78 +188,6 @@ const POSContainer = () => {
     deleteBillGroup(groupToDelete, cart, setCart);
   };
 
-  useEffect(() => {
-    const price = parseFloat(importPrice) || 0;
-    const updatedPortions: PortionType[] = [
-      { label: 'Full', price: price, unit: 'plate', multiplier: 1 }
-    ];
-
-    if (showPortionOptions && halfPortionPrice) {
-      const halfPrice = parseFloat(halfPortionPrice) || 0;
-      updatedPortions.push({ label: 'Half', price: halfPrice, unit: 'plate', multiplier: 0.5 });
-    }
-
-    setPortions(updatedPortions);
-  }, [importPrice, halfPortionPrice, showPortionOptions]);
-
-  const handleImportItem = async () => {
-    if (!importName || !importPrice) {
-      toast({
-        title: "Missing information",
-        description: "Please fill all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const price = parseFloat(importPrice);
-    if (isNaN(price)) {
-      toast({
-        title: "Invalid price",
-        description: "Please enter a valid price",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('menuitems')
-        .insert({
-          name: importName,
-          price: price,
-          category: importCategory,
-          portions: JSON.stringify(portions),
-          supportshalf: showPortionOptions,
-          halfprice: showPortionOptions ? parseFloat(halfPortionPrice) || null : null
-        })
-        .select();
-
-      if (error) throw error;
-
-      toast({
-        title: "Item added successfully",
-        description: `${importName} has been added to the menu`,
-        variant: "default"
-      });
-      
-      setImportName("");
-      setImportPrice("");
-      setImportCategory("Main Course");
-      setShowPortionOptions(false);
-      setHalfPortionPrice("");
-      setImportDialogOpen(false);
-      
-      queryClient.invalidateQueries({ queryKey: ['menuItems'] });
-    } catch (error: any) {
-      toast({
-        title: "Failed to add item",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-
   const generateCsvTemplate = () => {
     const header = "Name,Price,Category,SupportHalf,HalfPrice,Unit\n";
     const sampleRows = [
@@ -294,6 +207,11 @@ const POSContainer = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    toast({
+      title: "Template Downloaded",
+      description: "Fill the template with your menu items and upload it back",
+    });
   };
 
   return (
@@ -314,148 +232,45 @@ const POSContainer = () => {
           </Button>
           <h1 className="text-2xl font-bold">Point of Sale</h1>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    console.log("Navigating to analytics page");
-                    navigate('/analytics');
-                  }}
-                >
-                  <BarChart3 className="h-4 w-4 mr-1" />
-                  Analytics
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>View Sales Analytics</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Upload className="h-4 w-4 mr-1" />
-                Import Item
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Menu Item</DialogTitle>
-                <DialogDescription>
-                  Add a new item to your menu or download a template to bulk import items.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={importName}
-                    onChange={(e) => setImportName(e.target.value)}
-                    className="col-span-3"
-                    placeholder="Item name"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">
-                    Price (₹)
-                  </Label>
-                  <Input
-                    id="price"
-                    value={importPrice}
-                    onChange={(e) => setImportPrice(e.target.value)}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="col-span-3"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Category
-                  </Label>
-                  <Select
-                    value={importCategory}
-                    onValueChange={(val) => setImportCategory(val as MenuCategory)}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Main Course">Main Course</SelectItem>
-                      <SelectItem value="Starters">Starters</SelectItem>
-                      <SelectItem value="Desserts">Desserts</SelectItem>
-                      <SelectItem value="Beverages">Beverages</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-right col-span-4">
-                    <div className="flex items-center justify-end space-x-2">
-                      <input 
-                        type="checkbox" 
-                        id="supportHalf"
-                        checked={showPortionOptions}
-                        onChange={(e) => setShowPortionOptions(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      <Label htmlFor="supportHalf">
-                        Support Half Portion
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-                {showPortionOptions && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="halfPrice" className="text-right">
-                      Half Price (₹)
-                    </Label>
-                    <Input
-                      id="halfPrice"
-                      value={halfPortionPrice}
-                      onChange={(e) => setHalfPortionPrice(e.target.value)}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="col-span-3"
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
-              </div>
-              <DialogFooter className="flex justify-between items-center">
-                <Button
-                  variant="outline"
-                  onClick={generateCsvTemplate}
-                  type="button"
-                  className="mr-auto"
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download Template
-                </Button>
-                <Button
-                  type="submit"
-                  onClick={handleImportItem}
-                >
-                  Add Item
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
+          <div className="flex gap-2 mb-4">
+            <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Upload className="h-4 w-4 mr-1" />
+                  Import Items
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Import Menu Items</DialogTitle>
+                  <DialogDescription>
+                    Follow these steps to import your menu items:
+                    <ol className="list-decimal list-inside mt-2 space-y-2">
+                      <li>Download the CSV template</li>
+                      <li>Fill in your menu items in the template</li>
+                      <li>Save the file as CSV</li>
+                      <li>Upload the filled template (coming soon)</li>
+                    </ol>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={generateCsvTemplate}
+                    type="button"
+                    className="w-full"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download Template
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
           <MenuList 
             onAddToCart={(item, portionType, note) => addToCart(item, portionType, currentBillGroup, note)} 
             searchTerm={searchTerm} 
