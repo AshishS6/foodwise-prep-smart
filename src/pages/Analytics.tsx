@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from "recharts";
@@ -12,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/authStore";
 import { format, subDays } from "date-fns";
+import * as ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A259FF', '#FF6B6B'];
 
@@ -33,7 +34,6 @@ const Analytics = () => {
     }
   }, [session, userRole, navigate]);
 
-  // Fetch orders for the selected time range
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders', timeRange],
     queryFn: async () => {
@@ -58,36 +58,28 @@ const Analytics = () => {
     }
   });
 
-  // Calculate data for reports
   const totalRevenue = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
   const averageOrderValue = orders?.length ? totalRevenue / orders.length : 0;
   const totalOrders = orders?.length || 0;
   
-  // Popular items
   const popularItems = calculatePopularItems(orders);
   
-  // Sales by day
   const salesByDay = calculateSalesByDay(orders, timeRange);
 
-  // Helper function to get start date for selected time range
   function getStartDateForRange(range: string): Date {
     const today = new Date();
     switch (range) {
       case "day":
-        // Just today
         return new Date(today.setHours(0, 0, 0, 0));
       case "week":
-        // Last 7 days
         return subDays(today, 7);
       case "month":
-        // Last 30 days
         return subDays(today, 30);
       default:
         return subDays(today, 7);
     }
   }
 
-  // Calculate most popular items from orders
   function calculatePopularItems(orderData: any[] | undefined) {
     if (!orderData?.length) return [];
     
@@ -118,13 +110,11 @@ const Analytics = () => {
       }));
   }
 
-  // Calculate sales by day
   function calculateSalesByDay(orderData: any[] | undefined, range: string) {
     if (!orderData?.length) return [];
     
     const salesMap: Record<string, number> = {};
     
-    // Initialize days based on range
     const numDays = range === 'day' ? 1 : range === 'week' ? 7 : 30;
     for (let i = 0; i < numDays; i++) {
       const date = subDays(new Date(), i);
@@ -132,7 +122,6 @@ const Analytics = () => {
       salesMap[dateStr] = 0;
     }
     
-    // Aggregate sales by day
     orderData.forEach(order => {
       const orderDate = format(new Date(order.timestamp), 'yyyy-MM-dd');
       if (salesMap[orderDate] !== undefined) {
@@ -140,7 +129,6 @@ const Analytics = () => {
       }
     });
     
-    // Convert to array for chart
     return Object.entries(salesMap)
       .map(([date, amount]) => ({
         date: format(new Date(date), 'MMM dd'),
@@ -149,21 +137,112 @@ const Analytics = () => {
       .reverse();
   }
 
+  const exportToExcel = async () => {
+    if (!orders || orders.length === 0) {
+      toast({
+        title: "No data to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sales Report');
+    
+    worksheet.mergeCells('A1:D1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = `Payasakkada Sales Report - ${format(new Date(), 'yyyy-MM-dd')}`;
+    titleCell.font = { size: 14, bold: true };
+    titleCell.alignment = { horizontal: 'center' };
+    
+    worksheet.addRow(['']);
+    worksheet.addRow(['Summary']);
+    worksheet.addRow(['Total Revenue', `₹${totalRevenue.toFixed(2)}`]);
+    worksheet.addRow(['Total Orders', totalOrders]);
+    worksheet.addRow(['Average Order Value', `₹${averageOrderValue.toFixed(2)}`]);
+    worksheet.addRow(['']);
+    
+    worksheet.addRow(['Popular Items']);
+    worksheet.addRow(['Item', 'Count']);
+    popularItems.forEach(item => {
+      worksheet.addRow([item.name, item.value]);
+    });
+    worksheet.addRow(['']);
+    
+    worksheet.addRow(['Daily Sales']);
+    worksheet.addRow(['Date', 'Amount']);
+    salesByDay.forEach(day => {
+      worksheet.addRow([day.date, day.amount]);
+    });
+    worksheet.addRow(['']);
+    
+    worksheet.addRow(['Orders']);
+    worksheet.addRow(['Order ID', 'Date', 'Items', 'Total']);
+    orders.forEach(order => {
+      const itemsText = Array.isArray(order.items) 
+        ? order.items.map(item => `${item.quantity}x ${item.name}`).join(', ')
+        : '';
+      worksheet.addRow([
+        order.id,
+        format(new Date(order.timestamp), 'yyyy-MM-dd HH:mm'),
+        itemsText,
+        `₹${order.total.toFixed(2)}`
+      ]);
+    });
+    
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `payasakkada-sales-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    
+    toast({
+      title: "Report exported successfully",
+    });
+  };
+
+  const exportToPDF = () => {
+    toast({
+      title: "PDF export",
+      description: "PDF export functionality will be implemented soon.",
+    });
+  };
+
   return (
     <div className="container mx-auto p-4">
-      <div className="flex items-center gap-4 mb-6">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={() => navigate('/')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold">Sales Analytics</h1>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">Sales Analytics</h1>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportToExcel}
+            disabled={isLoading || !orders || orders.length === 0}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export Excel
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportToPDF}
+            disabled={isLoading || !orders || orders.length === 0}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export PDF
+          </Button>
+        </div>
       </div>
       
-      {/* Time Range Selector */}
       <div className="mb-6">
         <Tabs defaultValue="week" value={timeRange} onValueChange={setTimeRange}>
           <TabsList>
@@ -178,7 +257,6 @@ const Analytics = () => {
         <p>Loading analytics data...</p>
       ) : (
         <>
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <Card>
               <CardHeader className="pb-2">
@@ -223,9 +301,7 @@ const Analytics = () => {
             </Card>
           </div>
           
-          {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Popular Items */}
             <Card>
               <CardHeader>
                 <CardTitle>Most Popular Items</CardTitle>
@@ -259,7 +335,6 @@ const Analytics = () => {
               </CardContent>
             </Card>
             
-            {/* Sales Trend */}
             <Card>
               <CardHeader>
                 <CardTitle>Sales Trend</CardTitle>
@@ -294,7 +369,6 @@ const Analytics = () => {
             </Card>
           </div>
           
-          {/* Export Options */}
           <div className="mt-6 flex justify-end">
             <TooltipProvider>
               <Tooltip>

@@ -111,7 +111,7 @@ export default function EditItemDialog({
           halfprice: itemData.supportshalf ? Number(itemData.halfprice) : null,
           category: itemData.category
         })
-        .eq('id', item.id);
+        .eq('id', typeof item.id === 'string' ? parseInt(item.id, 10) : item.id);
       
       if (error) throw error;
     },
