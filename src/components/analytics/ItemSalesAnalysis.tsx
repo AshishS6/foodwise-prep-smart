@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ItemSalesChart } from "./ItemSalesChart";
 import { ItemSalesTable } from "./ItemSalesTable";
+import { BarChart3, Table as TableIcon } from "lucide-react";
 
 interface ItemSale {
   id: number;
@@ -27,8 +28,14 @@ export function ItemSalesAnalysis({ sales }: ItemSalesAnalysisProps) {
         ) : (
           <Tabs defaultValue="chart" className="w-full">
             <TabsList className="mb-4">
-              <TabsTrigger value="chart">Chart View</TabsTrigger>
-              <TabsTrigger value="table">Table View</TabsTrigger>
+              <TabsTrigger value="chart" className="flex items-center gap-1">
+                <BarChart3 className="h-4 w-4" />
+                Chart View
+              </TabsTrigger>
+              <TabsTrigger value="table" className="flex items-center gap-1">
+                <TableIcon className="h-4 w-4" />
+                Table View
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="chart" className="space-y-4">

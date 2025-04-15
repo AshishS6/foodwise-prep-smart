@@ -195,7 +195,7 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card 
             className="rounded-2xl shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-            onClick={() => navigate('/analytics')}
+            onClick={() => navigate('/order-history')}
           >
             <CardHeader className="pb-2 flex flex-row items-center justify-between bg-blue-50/50">
               <CardTitle className="text-lg font-medium text-blue-700">Today's Sales</CardTitle>
