@@ -23,9 +23,6 @@ import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { useAuthStore } from "@/stores/authStore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { UserPlus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/stores/authStore";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -173,7 +170,6 @@ const Index = () => {
     navigate('/analytics');
   };
 
-  // Add Team Management to the analytics overview section
   return (
     <div className="min-h-screen bg-background">
       <header className="flex justify-between items-center py-6">
