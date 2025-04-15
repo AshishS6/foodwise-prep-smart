@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,17 +18,18 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useAuthStore } from "@/stores/authStore";
+import { OrderDetailsDialog } from "@/components/orders/OrderDetailsDialog";
 
 const OrderHistory = () => {
   const navigate = useNavigate();
   const { session, userRole } = useAuthStore();
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [dateFilter, setDateFilter] = useState<string>("today");
-  
-  // Format the date for querying
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const formattedDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
 
-  // Query for orders based on the selected date/filter
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders', dateFilter, formattedDate],
     queryFn: async () => {
@@ -90,15 +90,12 @@ const OrderHistory = () => {
     }
   });
 
-  // Calculate total revenue from orders
   const totalRevenue = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
   
-  // Format timestamp for display
   const formatTime = (timestamp: string) => {
     return format(new Date(timestamp), "dd MMM yyyy, hh:mm a");
   };
 
-  // Check if user is authenticated
   useEffect(() => {
     if (!session) {
       navigate('/auth');
@@ -121,7 +118,6 @@ const OrderHistory = () => {
         <h1 className="text-2xl font-bold">Order History</h1>
       </div>
 
-      {/* Filter Controls */}
       <Card className="mb-6">
         <CardContent className="py-4">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
@@ -172,7 +168,6 @@ const OrderHistory = () => {
         </CardContent>
       </Card>
 
-      {/* Summary Card */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Order Summary</CardTitle>
@@ -191,7 +186,6 @@ const OrderHistory = () => {
         </CardContent>
       </Card>
 
-      {/* Orders Table */}
       <Card>
         <CardHeader>
           <CardTitle>Orders</CardTitle>
@@ -212,7 +206,14 @@ const OrderHistory = () => {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow 
+                      key={order.id}
+                      className="cursor-pointer hover:bg-accent/50"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setDialogOpen(true);
+                      }}
+                    >
                       <TableCell className="font-medium">{order.id}</TableCell>
                       <TableCell>{order.timestamp ? formatTime(order.timestamp) : "N/A"}</TableCell>
                       <TableCell>
@@ -239,6 +240,12 @@ const OrderHistory = () => {
           )}
         </CardContent>
       </Card>
+
+      <OrderDetailsDialog 
+        order={selectedOrder}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 };
