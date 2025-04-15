@@ -23,15 +23,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PortionType } from "./PortionTypeSelector";
 
 export type CartItem = {
   menuItemId: number;
   name: string;
   price: number;
   quantity: number;
-  isHalf: boolean;
   note?: string;
   billGroup?: number;
+  portionType: PortionType;
 };
 
 const POSContainer = () => {
@@ -49,6 +50,14 @@ const POSContainer = () => {
   const [missingRecipes, setMissingRecipes] = useState<string[]>([]);
   const [showMissingRecipeAlert, setShowMissingRecipeAlert] = useState(false);
   const [isValidatingOrder, setIsValidatingOrder] = useState(false);
+
+  // Log component initialization
+  useEffect(() => {
+    console.log("POSContainer initialized");
+    return () => {
+      console.log("POSContainer unmounted");
+    };
+  }, []);
 
   const currentGroupTotal = cart
     .filter(item => item.billGroup === currentBillGroup)
@@ -131,13 +140,12 @@ const POSContainer = () => {
     }
   });
 
-  const addToCart = (item: any, isHalf: boolean = false, note: string = '') => {
-    const price = isHalf ? (item.halfprice || item.price / 2) : item.price;
-    const itemName = isHalf ? `${item.name} (Half)` : item.name;
+  const addToCart = (item: any, portionType: PortionType, note: string = '') => {
+    const itemName = `${item.name} (${portionType.label})`;
     
     const existingItemIndex = cart.findIndex(cartItem => 
       cartItem.menuItemId === item.id && 
-      cartItem.isHalf === isHalf && 
+      cartItem.portionType.label === portionType.label && 
       cartItem.note === note &&
       cartItem.billGroup === currentBillGroup
     );
@@ -153,11 +161,11 @@ const POSContainer = () => {
       setCart([...cart, {
         menuItemId: item.id,
         name: itemName,
-        price: price,
+        price: portionType.price,
         quantity: 1,
-        isHalf: isHalf,
         note: note,
-        billGroup: currentBillGroup
+        billGroup: currentBillGroup,
+        portionType: portionType
       }]);
     }
   };
@@ -389,7 +397,7 @@ const POSContainer = () => {
     
     if (recipes) {
       for (const recipe of recipes) {
-        const multiplier = item.isHalf ? 0.5 : 1;
+        const multiplier = item.portionType.multiplier;
         const totalUsed = recipe.quantity * item.quantity * multiplier;
         
         const { error: updateError } = await supabase.rpc(

@@ -9,9 +9,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import EditItemDialog from "./EditItemDialog";
+import PortionTypeSelector, { PortionType } from "./PortionTypeSelector";
 
 interface MenuListProps {
-  onAddToCart: (item: any, isHalf?: boolean, note?: string) => void;
+  onAddToCart: (item: any, portionType: PortionType, note?: string) => void;
   searchTerm?: string;
   setSearchTerm?: (term: string) => void;
 }
@@ -28,6 +29,7 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   const [localSearch, setLocalSearch] = useState(searchTerm);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPortions, setSelectedPortions] = useState<Record<number, PortionType>>({});
 
   const queryClient = useQueryClient();
 
@@ -41,7 +43,66 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
         .order('name');
       
       if (error) throw error;
-      return data || [];
+      
+      // Initialize default portion types for each menu item
+      const itemsWithPortions = data?.map(item => {
+        const portions = [];
+        
+        // Default "Full" portion
+        portions.push({
+          label: "Full",
+          price: item.price,
+          multiplier: 1,
+          unit: "Plate"
+        });
+        
+        // Add "Half" portion if supported
+        if (item.supportshalf) {
+          portions.push({
+            label: "Half",
+            price: item.halfprice || item.price / 2,
+            multiplier: 0.5,
+            unit: "Plate"
+          });
+        }
+        
+        // For beverages category, add glass and liter options
+        if (item.category === "Beverages") {
+          portions.push(
+            {
+              label: "Glass",
+              price: item.price * 0.3,
+              multiplier: 0.3,
+              unit: "Glass"
+            },
+            {
+              label: "Liter",
+              price: item.price,
+              multiplier: 1,
+              unit: "Liter"
+            },
+            {
+              label: "250ml",
+              price: item.price * 0.25,
+              multiplier: 0.25,
+              unit: "Liter"
+            },
+            {
+              label: "500ml",
+              price: item.price * 0.5,
+              multiplier: 0.5,
+              unit: "Liter"
+            }
+          );
+        }
+        
+        return {
+          ...item,
+          portions
+        };
+      });
+      
+      return itemsWithPortions || [];
     }
   });
 
@@ -81,6 +142,18 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingItem(null);
+  };
+
+  const handlePortionSelect = (item: any, portionType: PortionType) => {
+    setSelectedPortions({
+      ...selectedPortions,
+      [item.id]: portionType
+    });
+  };
+
+  const handleAddToCart = (item: any) => {
+    const portionType = selectedPortions[item.id] || item.portions[0];
+    onAddToCart(item, portionType);
   };
 
   if (error) {
@@ -153,7 +226,9 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-muted-foreground">₹{item.price.toFixed(2)}</p>
+                      <p className="text-muted-foreground">
+                        ₹{(selectedPortions[item.id]?.price || item.portions[0].price).toFixed(2)}
+                      </p>
                       <span className="inline-block text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 mt-1">
                         {item.category}
                       </span>
@@ -166,22 +241,21 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="flex justify-between">
+                  
+                  {/* Portion Type Selector */}
+                  <PortionTypeSelector
+                    portions={item.portions}
+                    selectedPortion={selectedPortions[item.id] || item.portions[0]}
+                    onSelectPortion={(portion) => handlePortionSelect(item, portion)}
+                  />
+                  
+                  <div className="mt-3">
                     <Button
-                      onClick={() => onAddToCart(item)}
-                      className="flex-1 mr-1"
+                      onClick={() => handleAddToCart(item)}
+                      className="w-full"
                     >
-                      Add
+                      Add to Cart
                     </Button>
-                    {item.supportshalf && (
-                      <Button
-                        onClick={() => onAddToCart(item, true)}
-                        variant="outline"
-                        className="flex-1 ml-1"
-                      >
-                        Half
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>

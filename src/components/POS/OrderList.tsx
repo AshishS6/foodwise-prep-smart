@@ -65,13 +65,23 @@ const OrderList = ({
           <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto">
             {cart.map((item, index) => (
               <div 
-                key={`${item.menuItemId}-${item.isHalf}-${index}`} 
+                key={`${item.menuItemId}-${item.portionType.label}-${index}`} 
                 className="flex flex-col bg-background p-3 rounded-md"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
                     <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">₹{item.price.toFixed(2)} each</p>
+                    <p className="text-sm text-muted-foreground">
+                      ₹{item.price.toFixed(2)} each
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                      <span className="inline-block bg-gray-100 px-2 py-0.5 rounded-full">
+                        {item.portionType.label} ({item.portionType.unit})
+                      </span>
+                      <span>
+                        × {item.portionType.multiplier}
+                      </span>
+                    </div>
                     {item.note && (
                       <p className="text-xs text-muted-foreground italic mt-1">
                         Note: {item.note}
