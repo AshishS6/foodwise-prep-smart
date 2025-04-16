@@ -70,11 +70,11 @@ const OrderList = ({
               >
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-bold text-base">{item.name}</p>
+                    <p className="text-sm font-semibold text-muted-foreground">
                       ₹{item.price.toFixed(2)} each
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mt-1">
                       <span className="inline-block bg-gray-100 px-2 py-0.5 rounded-full">
                         {item.portionType.label} ({item.portionType.unit})
                       </span>
@@ -83,7 +83,7 @@ const OrderList = ({
                       </span>
                     </div>
                     {item.note && (
-                      <p className="text-xs text-muted-foreground italic mt-1">
+                      <p className="text-xs font-medium text-muted-foreground italic mt-1">
                         Note: {item.note}
                       </p>
                     )}
@@ -173,7 +173,7 @@ const OrderList = ({
           </div>
 
           <div className="py-3 border-t border-border">
-            <div className="flex justify-between mb-2">
+            <div className="flex justify-between mb-2 font-semibold">
               <span>Subtotal:</span>
               <span>₹{total.toFixed(2)}</span>
             </div>

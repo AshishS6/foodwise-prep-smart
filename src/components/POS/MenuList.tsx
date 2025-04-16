@@ -1,6 +1,5 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -83,17 +82,14 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
     }
   });
 
-  // Add mutation for importing menu items
   const importMenuItems = useMutation({
     mutationFn: async (items: any[]) => {
-      // Transform items to include proper defaults and format for Supabase
       const formattedItems = items.map(item => {
         const unit = item.unit || 'plate';
         const price = parseFloat(item.price) || 0;
         const supportshalf = item.supportshalf === true || item.supportshalf?.toString().toUpperCase() === 'TRUE';
         const halfprice = parseFloat(item.halfprice) || 0;
         
-        // Create portions array
         const portions = [{
           label: 'Full',
           price: price,
@@ -149,6 +145,13 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
   });
 
   const [importedItems, setImportedItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -236,7 +239,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
         const rows = text.split('\n').map(row => row.split(','));
         const headers = rows[0].map(header => header.toLowerCase().trim());
         
-        // Skip the header row and empty rows
         const items = rows.slice(1)
           .filter(row => row.length > 1 && row[0].trim() !== '')
           .map(row => {
@@ -257,7 +259,6 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
             return item;
           });
 
-        // Check for existing items
         const existingItems = menuItems || [];
         const duplicates = items.filter(newItem => 
           existingItems.some(existingItem => 
@@ -299,10 +300,11 @@ const MenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MenuListProps
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search menu items..."
+            placeholder="Search menu items... (start typing)"
             value={localSearch}
             onChange={handleSearchChange}
             className="pl-9 pr-3 w-full"
+            autoFocus
           />
         </div>
         <div className="flex items-center gap-2">
