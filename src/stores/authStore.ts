@@ -37,18 +37,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ session: data.session, user: data.user });
       
       if (data.user) {
-        const { data: roleData } = await supabase.rpc('get_user_role', { 
-          user_uuid: data.user.id 
-        });
-        
         const { data: teamMemberData, error: profileError } = await supabase
           .from('team_members')
           .select('name, role')
-          .eq('user_id', data.user.id)
+          .eq('email', data.user.email)
           .maybeSingle();
           
         set({ 
-          userRole: roleData || 'Guest',
+          userRole: teamMemberData?.role || 'Guest',
           userName: teamMemberData?.name || data.user.email.split('@')[0]
         });
         
@@ -150,18 +146,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (session.user.email === 'ashishsasikumar@gmail.com') {
             set({ userRole: 'Admin', userName: 'Ashish' });
           } else {
-            supabase.rpc('get_user_role', { user_uuid: session.user.id })
-              .then(({ data: roleData }) => {
-                set({ userRole: roleData || 'Guest' });
-              });
-              
             supabase
               .from('team_members')
-              .select('name')
-              .eq('user_id', session.user.id)
+              .select('role, name')
+              .eq('email', session.user.email)
               .maybeSingle()
-              .then(({ data: nameData }) => {
-                set({ userName: nameData?.name || null });
+              .then(({ data }) => {
+                set({ 
+                  userRole: data?.role || 'Guest',
+                  userName: data?.name || null 
+                });
               });
           }
         }
@@ -207,18 +201,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             }
           }
         } else {
-          const { data: roleData } = await supabase.rpc('get_user_role', { 
-            user_uuid: session.user.id 
-          });
-          
-          const { data: nameData } = await supabase
+          const { data: teamData } = await supabase
             .from('team_members')
-            .select('name')
-            .eq('user_id', session.user.id)
+            .select('role, name')
+            .eq('email', session.user.email)
             .maybeSingle();
             
-          userRole = roleData || 'Guest';
-          userName = nameData?.name || null;
+          userRole = teamData?.role || 'Guest';
+          userName = teamData?.name || null;
         }
       }
       
