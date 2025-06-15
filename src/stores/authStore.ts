@@ -226,43 +226,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   inviteTeamMember: async (email: string, role: string) => {
-    const { userRole, user } = get();
-    
-    if (userRole !== 'Admin') {
-      throw new Error('Only administrators can invite team members');
-    }
-    
     try {
-      const { data: existingUser, error: checkError } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
-        
-      if (checkError) throw checkError;
-      
-      if (existingUser) {
-        throw new Error(`User with email ${email} is already a team member`);
+      const { error } = await supabase.rpc('invite_team_member_rpc', {
+        invite_email: email,
+        invite_role: role,
+      });
+
+      if (error) {
+        // The error message from the database function will be more specific.
+        throw new Error(error.message);
       }
-      
-      const { error: teamError } = await supabase
-        .from('team_members')
-        .insert({
-          email: email,
-          role: role,
-          user_id: '00000000-0000-0000-0000-000000000000'
-        });
-        
-      if (teamError) throw teamError;
-      
-      await get().logActivity(
-        'invite', 
-        'team_member', 
-        email, 
-        { role }
-      );
-      
-      return;
     } catch (error: any) {
       throw new Error(error.message);
     }

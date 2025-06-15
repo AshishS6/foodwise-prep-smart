@@ -213,9 +213,17 @@ export type Database = {
         Args: { ingredient_id: number; amount: number }
         Returns: number
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: string
+      }
+      invite_team_member_rpc: {
+        Args: { invite_email: string; invite_role: string }
+        Returns: undefined
       }
       log_activity: {
         Args: {
