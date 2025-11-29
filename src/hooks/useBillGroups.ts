@@ -9,6 +9,7 @@ export const useBillGroups = () => {
     const newGroup = Math.max(...billGroups) + 1;
     setBillGroups([...billGroups, newGroup]);
     setCurrentBillGroup(newGroup);
+    return newGroup;
   };
 
   const deleteBillGroup = (groupToDelete: number, cart: any[], setCart: (cart: any[]) => void) => {

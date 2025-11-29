@@ -26,7 +26,8 @@ const POSContainer = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [orderType, setOrderType] = useState<'take_away' | 'seating'>('take_away');
+  // Store order type per bill group: { billGroupId: orderType }
+  const [orderTypes, setOrderTypes] = useState<Record<number, 'take_away' | 'seating'>>({ 1: 'take_away' });
 
   const {
     cart,
@@ -46,6 +47,14 @@ const POSContainer = () => {
     addBillGroup,
     deleteBillGroup
   } = useBillGroups();
+
+  // Get order type for current bill group, default to 'take_away'
+  const currentOrderType = orderTypes[currentBillGroup] || 'take_away';
+
+  // Update order type for a specific bill group
+  const setOrderTypeForBill = (billGroup: number, orderType: 'take_away' | 'seating') => {
+    setOrderTypes(prev => ({ ...prev, [billGroup]: orderType }));
+  };
 
   const {
     missingRecipes,
@@ -87,7 +96,9 @@ const POSContainer = () => {
     }
 
     if (e.key === '+') {
-      addBillGroup();
+      const newGroup = addBillGroup();
+      // Initialize order type for new bill group
+      setOrderTypes(prev => ({ ...prev, [newGroup]: 'take_away' }));
     }
   };
 
@@ -118,18 +129,35 @@ const POSContainer = () => {
     if (!isValid) {
       setShowMissingRecipeAlert(true);
     } else {
-      submitOrder.mutate({ cart, orderType }, {
-        onSuccess: () => {
-          setCart([]);
-          setBillGroups([1]);
-          setCurrentBillGroup(1);
-          
-          toast({
-            title: "Order completed successfully",
-            description: "All bills have been processed",
-            variant: "default"
-          });
-        }
+      // Group cart items by bill group and submit each with its own order type
+      const groupedBills = billGroups.map(group => ({
+        groupId: group,
+        items: cart.filter(item => item.billGroup === group),
+        orderType: orderTypes[group] || 'take_away'
+      })).filter(bill => bill.items.length > 0);
+
+      // Submit all bills
+      Promise.all(
+        groupedBills.map(bill => 
+          submitOrder.mutateAsync({ cart: bill.items, orderType: bill.orderType })
+        )
+      ).then(() => {
+        setCart([]);
+        setBillGroups([1]);
+        setCurrentBillGroup(1);
+        setOrderTypes({ 1: 'take_away' });
+        
+        toast({
+          title: "Order completed successfully",
+          description: "All bills have been processed",
+          variant: "default"
+        });
+      }).catch((error) => {
+        toast({
+          title: "Error submitting orders",
+          description: error.message,
+          variant: "destructive"
+        });
       });
     }
   };
@@ -153,13 +181,20 @@ const POSContainer = () => {
     if (!isValid) {
       setShowMissingRecipeAlert(true);
     } else {
-      submitOrder.mutate({ cart: currentGroupItems, orderType }, {
+      const billOrderType = orderTypes[currentBillGroup] || 'take_away';
+      submitOrder.mutate({ cart: currentGroupItems, orderType: billOrderType }, {
         onSuccess: () => {
           setCart(cart.filter(item => item.billGroup !== currentBillGroup));
           
+          // Remove order type for deleted bill group
+          const updatedOrderTypes = { ...orderTypes };
+          delete updatedOrderTypes[currentBillGroup];
+          setOrderTypes(updatedOrderTypes);
+          
           if (billGroups.length > 1) {
-            setBillGroups(billGroups.filter(g => g !== currentBillGroup));
-            setCurrentBillGroup(billGroups.filter(g => g !== currentBillGroup)[0]);
+            const remainingGroups = billGroups.filter(g => g !== currentBillGroup);
+            setBillGroups(remainingGroups);
+            setCurrentBillGroup(remainingGroups[0]);
           } else {
             setCurrentBillGroup(1);
           }
@@ -189,6 +224,10 @@ const POSContainer = () => {
 
   const deleteBillGroupInner = (groupToDelete: number) => {
     deleteBillGroup(groupToDelete, cart, setCart);
+    // Remove order type for deleted bill group
+    const updatedOrderTypes = { ...orderTypes };
+    delete updatedOrderTypes[groupToDelete];
+    setOrderTypes(updatedOrderTypes);
   };
 
   const generateCsvTemplate = () => {
@@ -266,18 +305,18 @@ const POSContainer = () => {
         </div>
 
         <div className={`rounded-lg p-4 border-2 shadow-sm transition-colors ${
-          orderType === 'seating' 
+          currentOrderType === 'seating' 
             ? 'bg-green-50 border-green-300' 
             : 'bg-blue-50 border-blue-300'
         } ${isMobile ? 'order-2 mt-6' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
           <div className="mb-4">
             <div className="mb-4">
               <label className={`text-sm font-medium mb-2 block ${
-                orderType === 'seating' ? 'text-green-700' : 'text-blue-700'
-              }`}>Order Type</label>
-              <Select value={orderType} onValueChange={(value: 'take_away' | 'seating') => setOrderType(value)}>
+                currentOrderType === 'seating' ? 'text-green-700' : 'text-blue-700'
+              }`}>Order Type (Bill #{currentBillGroup})</label>
+              <Select value={currentOrderType} onValueChange={(value: 'take_away' | 'seating') => setOrderTypeForBill(currentBillGroup, value)}>
                 <SelectTrigger className={
-                  orderType === 'seating' 
+                  currentOrderType === 'seating' 
                     ? 'border-green-300 bg-white' 
                     : 'border-blue-300 bg-white'
                 }>
@@ -294,7 +333,11 @@ const POSContainer = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={addBillGroup}
+                onClick={() => {
+                  const newGroup = addBillGroup();
+                  // Initialize order type for new bill group
+                  setOrderTypes(prev => ({ ...prev, [newGroup]: 'take_away' }));
+                }}
                 className="flex items-center gap-1"
               >
                 <Split className="h-3 w-3" />
@@ -335,7 +378,7 @@ const POSContainer = () => {
                       .filter(item => item.billGroup === group)
                       .reduce((sum, item) => sum + (item.price * item.quantity), 0)
                     }
-                    orderType={orderType}
+                    orderType={orderTypes[group] || 'take_away'}
                     onUpdateQuantity={(index, change) => {
                       const globalIndex = cart.findIndex((item, i) => 
                         item.billGroup === group && 
@@ -419,13 +462,30 @@ const POSContainer = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
-              submitOrder.mutate({ cart, orderType }, {
-                onSuccess: () => {
-                  setCart([]);
-                  setBillGroups([1]);
-                  setCurrentBillGroup(1);
-                  setShowMissingRecipeAlert(false);
-                }
+              // Group cart items by bill group and submit each with its own order type
+              const groupedBills = billGroups.map(group => ({
+                groupId: group,
+                items: cart.filter(item => item.billGroup === group),
+                orderType: orderTypes[group] || 'take_away'
+              })).filter(bill => bill.items.length > 0);
+
+              // Submit all bills
+              Promise.all(
+                groupedBills.map(bill => 
+                  submitOrder.mutateAsync({ cart: bill.items, orderType: bill.orderType })
+                )
+              ).then(() => {
+                setCart([]);
+                setBillGroups([1]);
+                setCurrentBillGroup(1);
+                setOrderTypes({ 1: 'take_away' });
+                setShowMissingRecipeAlert(false);
+              }).catch((error) => {
+                toast({
+                  title: "Error submitting orders",
+                  description: error.message,
+                  variant: "destructive"
+                });
               });
             }}>
               Continue Anyway
