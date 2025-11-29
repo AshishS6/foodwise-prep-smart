@@ -103,3 +103,4 @@ export const MobileCard: React.FC<MobileCardProps> = ({
   );
 };
 
+

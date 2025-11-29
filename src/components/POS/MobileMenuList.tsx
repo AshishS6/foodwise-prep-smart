@@ -175,3 +175,4 @@ const MobileMenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MobileM
 
 export default MobileMenuList;
 
+
