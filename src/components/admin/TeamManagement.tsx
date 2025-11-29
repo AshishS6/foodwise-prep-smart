@@ -29,8 +29,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCurrentTeamMember } from "@/hooks/useTeamMembers";
-import { Loader2, UserPlus } from "lucide-react";
+import { useCurrentTeamMember, useUpdateTeamMember } from "@/hooks/useTeamMembers";
+import { Loader2, UserPlus, Edit2 } from "lucide-react";
 import { TeamMember } from "@/types";
 
 export function TeamManagement() {
@@ -42,6 +42,9 @@ export function TeamManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<string>("");
+  const updateTeamMember = useUpdateTeamMember();
 
   const fetchTeamMembers = async () => {
     setIsLoading(true);
@@ -148,6 +151,57 @@ export function TeamManagement() {
     Cashier: "bg-blue-100 text-blue-800 border-blue-300",
   };
 
+  const handleEditRole = (member: TeamMember) => {
+    setEditingMemberId(member.id);
+    setEditingRole(member.role);
+  };
+
+  const handleSaveRole = async (memberId: string) => {
+    if (!editingRole) {
+      toast({
+        title: "Role required",
+        description: "Please select a role",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await updateTeamMember.mutate({
+        id: memberId,
+        role: editingRole,
+      });
+
+      if (updateTeamMember.error) {
+        throw new Error(updateTeamMember.error.message);
+      }
+
+      if (result) {
+        toast({
+          title: "Role updated",
+          description: "Team member role has been updated successfully",
+        });
+
+        setEditingMemberId(null);
+        setEditingRole("");
+        fetchTeamMembers(); // Refresh the list
+      } else {
+        throw new Error("Failed to update role");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to update role",
+        description: error.message || "An error occurred while updating the role",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMemberId(null);
+    setEditingRole("");
+  };
+
   // Only allow admins to access this component
   if (currentTeamMember?.role !== "Admin") {
     return (
@@ -225,18 +279,19 @@ export function TeamManagement() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead className="w-[150px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     <Loader2 className="animate-spin h-6 w-6 mx-auto" />
                   </TableCell>
                 </TableRow>
               ) : teamMembers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     No team members found
                   </TableCell>
                 </TableRow>
@@ -248,12 +303,65 @@ export function TeamManagement() {
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        roleDisplayClasses[member.role as keyof typeof roleDisplayClasses] || 
-                        "bg-gray-100 text-gray-800 border-gray-300"
-                      }`}>
-                        {member.role}
-                      </span>
+                      {editingMemberId === member.id ? (
+                        <Select
+                          value={editingRole}
+                          onValueChange={setEditingRole}
+                        >
+                          <SelectTrigger className="w-[150px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Admin">Admin</SelectItem>
+                            <SelectItem value="Manager">Manager</SelectItem>
+                            <SelectItem value="Kitchen Staff">Kitchen Staff</SelectItem>
+                            <SelectItem value="Cashier">Cashier</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          roleDisplayClasses[member.role as keyof typeof roleDisplayClasses] || 
+                          "bg-gray-100 text-gray-800 border-gray-300"
+                        }`}>
+                          {member.role}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingMemberId === member.id ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleSaveRole(member.id)}
+                            disabled={updateTeamMember.loading}
+                          >
+                            {updateTeamMember.loading ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              "Save"
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                            disabled={updateTeamMember.loading}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditRole(member)}
+                          className="gap-1"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                          Edit Role
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

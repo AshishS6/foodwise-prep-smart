@@ -173,10 +173,18 @@ const MenuList = ({
     }
   };
 
-  const filteredItems = menuItems?.filter(item => {
+  const filteredItems = (menuItems || []).filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(localSearch.toLowerCase());
     const matchesCategory = activeCategory === "All Items" || item.category === activeCategory;
     return matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+    // Sort items: those with multiple portions first, then single portion items
+    const aHasMultiplePortions = a.portions && a.portions.length > 1;
+    const bHasMultiplePortions = b.portions && b.portions.length > 1;
+    
+    if (aHasMultiplePortions && !bHasMultiplePortions) return -1;
+    if (!aHasMultiplePortions && bHasMultiplePortions) return 1;
+    return 0; // Keep original order within each group
   });
 
   const handleAddNewItem = () => {
@@ -478,12 +486,12 @@ const MenuList = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {filteredItems?.length === 0 ? (
+          {filteredItems.length === 0 ? (
             <p className="col-span-full text-center py-8 text-muted-foreground">
               No menu items found. Try adjusting your search or category.
             </p>
           ) : (
-            filteredItems?.map((item) => (
+            filteredItems.map((item) => (
               <Card 
                 key={item.id} 
                 className={`overflow-hidden transition-all ${

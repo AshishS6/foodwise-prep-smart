@@ -27,6 +27,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Test = lazy(() => import("./pages/Test"));
+const KitchenOrders = lazy(() => import("./pages/KitchenOrders"));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -50,10 +51,10 @@ const queryClient = new QueryClient({
 
 // Define role-based permissions
 const ROLE_PERMISSIONS = {
-  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team'],
-  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans'],
+  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team', 'kitchen'],
+  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans', 'kitchen'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
-  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports']
+  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'kitchen']
 };
 
 // Protected route component with role-based access control
@@ -227,6 +228,16 @@ const AppContent = () => {
               } 
             />
             <Route 
+              path="/kitchen-orders" 
+              element={
+                <ProtectedRoute requiredPermission="kitchen">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <KitchenOrders />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/analytics"
               element={
                 <ProtectedRoute requiredPermission="analytics">
@@ -367,6 +378,16 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="orderhistory">
                   <Suspense fallback={<LoadingFallback />}>
                     <OrderHistory />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/kitchen-orders" 
+              element={
+                <ProtectedRoute requiredPermission="kitchen">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <KitchenOrders />
                   </Suspense>
                 </ProtectedRoute>
               } 

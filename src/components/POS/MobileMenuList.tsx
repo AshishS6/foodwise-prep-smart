@@ -71,12 +71,20 @@ const MobileMenuList = ({ onAddToCart, searchTerm = "", setSearchTerm }: MobileM
     }
   });
 
-  const filteredItems = menuItems?.filter(item => {
+  const filteredItems = (menuItems?.filter(item => {
     const matchesCategory = activeCategory === "All Items" || item.category === activeCategory;
     const matchesSearch = localSearch === "" || 
       item.name.toLowerCase().includes(localSearch.toLowerCase());
     return matchesCategory && matchesSearch;
-  }) || [];
+  }) || []).sort((a, b) => {
+    // Sort items: those with multiple portions first, then single portion items
+    const aHasMultiplePortions = a.portions && a.portions.length > 1;
+    const bHasMultiplePortions = b.portions && b.portions.length > 1;
+    
+    if (aHasMultiplePortions && !bHasMultiplePortions) return -1;
+    if (!aHasMultiplePortions && bHasMultiplePortions) return 1;
+    return 0; // Keep original order within each group
+  });
 
   const handleAddToCart = (item: any, portionType: PortionType) => {
     onAddToCart(item, portionType);

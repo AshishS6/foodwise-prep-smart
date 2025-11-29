@@ -31,9 +31,15 @@ const OrderHistory = () => {
   const formattedDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['orders', dateFilter, formattedDate],
+    queryKey: ['orders', dateFilter, formattedDate, userRole],
     queryFn: async () => {
       let query = supabase.from('orders').select('*');
+      
+      // Role-based filtering: Kitchen Staff only see take_away and seating orders
+      if (userRole === 'Kitchen Staff') {
+        query = query.in('order_type', ['take_away', 'seating']);
+      }
+      // Admin, Manager, and Cashier see all orders
       
       if (dateFilter === "today") {
         const today = new Date();

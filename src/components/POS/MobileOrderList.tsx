@@ -21,6 +21,7 @@ interface MobileOrderListProps {
   isSubmitting: boolean;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  orderType?: 'take_away' | 'seating';
 }
 
 const MobileOrderList = ({ 
@@ -33,11 +34,40 @@ const MobileOrderList = ({
   onSubmitOrder, 
   isSubmitting,
   isOpen = false,
-  onOpenChange
+  onOpenChange,
+  orderType = 'take_away'
 }: MobileOrderListProps) => {
   const { isMobile, touchSupported } = useDeviceDetection();
   const [editingNote, setEditingNote] = useState<number | null>(null);
   const [noteText, setNoteText] = useState<string>("");
+
+  // Get color scheme based on order type
+  const getOrderTypeColors = () => {
+    if (orderType === 'seating') {
+      return {
+        border: 'border-green-300',
+        bg: 'bg-green-50',
+        bgDark: 'bg-green-100',
+        text: 'text-green-700',
+        accent: 'bg-green-600 hover:bg-green-700',
+        badge: 'bg-green-100 text-green-800 border-green-300',
+        button: 'bg-green-600 hover:bg-green-700'
+      };
+    } else {
+      // take_away (default)
+      return {
+        border: 'border-blue-300',
+        bg: 'bg-blue-50',
+        bgDark: 'bg-blue-100',
+        text: 'text-blue-700',
+        accent: 'bg-blue-600 hover:bg-blue-700',
+        badge: 'bg-blue-100 text-blue-800 border-blue-300',
+        button: 'bg-blue-600 hover:bg-blue-700'
+      };
+    }
+  };
+
+  const colors = getOrderTypeColors();
 
   const handleSwipeDelete = (index: number) => {
     if (touchSupported) {
@@ -60,7 +90,7 @@ const MobileOrderList = ({
 
   const cartButton = (
     <Button
-      className="fixed bottom-20 right-4 z-40 rounded-full h-14 w-14 shadow-lg"
+      className={`fixed bottom-20 right-4 z-40 rounded-full h-14 w-14 shadow-lg ${colors.button} text-white`}
       onClick={() => onOpenChange?.(true)}
       style={{
         bottom: `calc(${LAYOUT_DIMENSIONS.BOTTOM_NAV_HEIGHT}px + 1rem)`,
@@ -68,7 +98,7 @@ const MobileOrderList = ({
     >
       <ShoppingCart className="h-6 w-6" />
       {cart.length > 0 && (
-        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold">
+        <span className={`absolute -top-2 -right-2 ${colors.badge} border rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold`}>
           {cart.length}
         </span>
       )}
@@ -79,9 +109,9 @@ const MobileOrderList = ({
     <>
       {cartButton}
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+        <SheetContent side="bottom" className={`max-h-[85vh] overflow-y-auto ${colors.bg} border-t-4 ${colors.border}`}>
           <SheetHeader>
-            <SheetTitle>Current Order ({cart.length} items)</SheetTitle>
+            <SheetTitle className={colors.text}>Current Order ({cart.length} items)</SheetTitle>
           </SheetHeader>
           
           {cart.length === 0 ? (
@@ -222,14 +252,14 @@ const MobileOrderList = ({
           )}
           
           {cart.length > 0 && (
-            <SheetFooter className="sticky bottom-0 bg-background border-t pt-4 mt-4">
+            <SheetFooter className={`sticky bottom-0 ${colors.bgDark} border-t-2 ${colors.border} pt-4 mt-4`}>
               <div className="w-full space-y-3">
-                <div className="flex justify-between items-center text-lg font-bold">
+                <div className={`flex justify-between items-center text-lg font-bold ${colors.text}`}>
                   <span>Total:</span>
                   <span>₹{total.toFixed(2)}</span>
                 </div>
                 <Button
-                  className="w-full h-14 text-base font-semibold"
+                  className={`w-full h-14 text-base font-semibold ${colors.button} text-white`}
                   onClick={onSubmitOrder}
                   disabled={isSubmitting}
                   style={{

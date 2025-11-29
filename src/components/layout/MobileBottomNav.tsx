@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, BarChart3, Users, Settings } from 'lucide-react';
+import { Home, ShoppingCart, Package, BarChart3, Users, Settings, Utensils } from 'lucide-react';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { useCurrentTeamMember } from '@/hooks/useTeamMembers';
 import { TOUCH_TARGETS, LAYOUT_DIMENSIONS, ANIMATION_DURATIONS } from '@/constants/mobile';
@@ -15,17 +15,17 @@ interface NavItem {
 }
 
 const ROLE_PERMISSIONS = {
-  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team'],
-  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans'],
+  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team', 'kitchen'],
+  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans', 'kitchen'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
-  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports']
+  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'kitchen']
 };
 
 export const MobileBottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isMobile } = useDeviceDetection();
-  const { data: teamMember } = useCurrentTeamMember();
+  const { data: teamMember, loading: teamMemberLoading } = useCurrentTeamMember();
 
   // Don't show on desktop or on auth pages
   if (!isMobile || location.pathname.startsWith('/auth')) {
@@ -38,6 +38,7 @@ export const MobileBottomNav: React.FC = () => {
   const navItems: NavItem[] = [
     { path: '/', icon: <Home className="h-5 w-5" />, label: 'Home', permission: 'dashboard' },
     { path: '/pos', icon: <ShoppingCart className="h-5 w-5" />, label: 'POS', permission: 'pos' },
+    { path: '/kitchen-orders', icon: <Utensils className="h-5 w-5" />, label: 'Kitchen', permission: 'kitchen' },
     { path: '/inventory', icon: <Package className="h-5 w-5" />, label: 'Inventory', permission: 'inventory' },
     { path: '/analytics', icon: <BarChart3 className="h-5 w-5" />, label: 'Analytics', permission: 'analytics' },
     { path: '/team-management', icon: <Users className="h-5 w-5" />, label: 'Team', permission: 'team' },
@@ -45,9 +46,16 @@ export const MobileBottomNav: React.FC = () => {
   ];
 
   // Filter items based on user permissions
-  const visibleItems = navItems.filter(item => 
-    !item.permission || userPermissions.includes(item.permission)
-  );
+  // If team member is still loading, show only dashboard (safe default)
+  // Otherwise, only show items that the user has permission for
+  const visibleItems = teamMemberLoading
+    ? navItems.filter(item => item.permission === 'dashboard')
+    : navItems.filter(item => {
+        // If item has no permission requirement, don't show it (all items should have permissions)
+        if (!item.permission) return false;
+        // Only show if user has the required permission
+        return userPermissions.includes(item.permission);
+      });
 
   const handleNavClick = (path: string) => {
     triggerHapticFeedback('light');

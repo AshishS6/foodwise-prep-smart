@@ -20,6 +20,7 @@ interface OrderListProps {
   onRemoveItem: (index: number) => void;
   onSubmitOrder: () => void;
   isSubmitting: boolean;
+  orderType?: 'take_away' | 'seating';
 }
 
 const OrderList = ({ 
@@ -30,10 +31,37 @@ const OrderList = ({
   onUpdateNote,
   onRemoveItem, 
   onSubmitOrder, 
-  isSubmitting 
+  isSubmitting,
+  orderType = 'take_away'
 }: OrderListProps) => {
   // Map for tracking which notes are being edited
   const [editingNote, setEditingNote] = useState<number | null>(null);
+
+  // Get color scheme based on order type
+  const getOrderTypeColors = () => {
+    if (orderType === 'seating') {
+      return {
+        border: 'border-green-300',
+        bg: 'bg-green-50',
+        bgDark: 'bg-green-100',
+        text: 'text-green-700',
+        accent: 'bg-green-600 hover:bg-green-700',
+        badge: 'bg-green-100 text-green-800 border-green-300'
+      };
+    } else {
+      // take_away (default)
+      return {
+        border: 'border-blue-300',
+        bg: 'bg-blue-50',
+        bgDark: 'bg-blue-100',
+        text: 'text-blue-700',
+        accent: 'bg-blue-600 hover:bg-blue-700',
+        badge: 'bg-blue-100 text-blue-800 border-blue-300'
+      };
+    }
+  };
+
+  const colors = getOrderTypeColors();
 
   // Handle keyboard shortcuts for quantity adjustment
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -50,13 +78,13 @@ const OrderList = ({
   };
 
   return (
-    <>
+    <div className={`rounded-lg border-2 ${colors.border} ${colors.bg} p-1 transition-colors`}>
       <div className="flex justify-between items-center mb-4 pb-3 border-b">
         <div className="flex items-center gap-2">
-          <ShoppingCart className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">Current Order</h2>
+          <ShoppingCart className={`h-5 w-5 ${colors.text}`} />
+          <h2 className={`text-xl font-semibold ${colors.text}`}>Current Order</h2>
           {cart.length > 0 && (
-            <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs font-bold">
+            <span className={`${colors.badge} border rounded-full px-2 py-0.5 text-xs font-bold`}>
               {cart.length}
             </span>
           )}
@@ -185,17 +213,17 @@ const OrderList = ({
             ))}
           </div>
 
-          <div className="py-4 border-t border-border bg-muted/30 -mx-3 -mb-3 px-3 rounded-b-lg">
-            <div className="flex justify-between mb-2 text-sm text-muted-foreground">
+          <div className={`py-4 border-t ${colors.border} ${colors.bgDark} -mx-3 -mb-3 px-3 rounded-b-lg`}>
+            <div className={`flex justify-between mb-2 text-sm ${colors.text} opacity-80`}>
               <span>Subtotal:</span>
               <span>₹{total.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between font-bold text-lg mb-4">
+            <div className={`flex justify-between font-bold text-lg mb-4 ${colors.text}`}>
               <span>Total:</span>
-              <span className="text-primary">₹{total.toFixed(2)}</span>
+              <span>₹{total.toFixed(2)}</span>
             </div>
             <Button 
-              className="w-full" 
+              className={`w-full ${colors.accent} text-white`}
               size="lg"
               onClick={onSubmitOrder}
               disabled={isSubmitting}
@@ -205,7 +233,7 @@ const OrderList = ({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 };
 

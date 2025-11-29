@@ -6,6 +6,8 @@ export interface Order {
   items: any;
   total: number;
   timestamp: string;
+  order_type?: 'take_away' | 'seating';
+  order_status?: 'pending' | 'in_progress' | 'ready' | 'completed';
 }
 
 export const useOrders = () => {

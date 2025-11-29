@@ -16,11 +16,16 @@ export interface Ingredient {
   unit: string;
 }
 
+export type OrderType = 'take_away' | 'seating';
+export type OrderStatus = 'pending' | 'in_progress' | 'ready' | 'completed';
+
 export interface Order {
   id: number;
   items: any;
   total: number;
   timestamp: string;
+  order_type?: OrderType;
+  order_status?: OrderStatus;
 }
 
 export interface PrepPlan {
@@ -103,6 +108,7 @@ export interface CreateIngredientForm {
 export interface CreateOrderForm {
   items: any;
   total: number;
+  order_type?: OrderType;
 }
 
 export interface CreatePrepPlanForm {
@@ -150,8 +156,8 @@ export interface RolePermissions {
 }
 
 export const ROLE_PERMISSIONS: RolePermissions = {
-  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team'],
-  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans'],
+  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team', 'kitchen'],
+  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans', 'kitchen'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
-  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports']
+  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'kitchen']
 };

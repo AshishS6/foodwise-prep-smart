@@ -27,14 +27,15 @@ import {
   Users,
   Settings,
   FileText,
+  Utensils,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ROLE_PERMISSIONS = {
-  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team'],
-  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans'],
+  'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team', 'kitchen'],
+  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans', 'kitchen'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
-  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports']
+  'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'kitchen']
 };
 
 interface MenuItem {
@@ -47,6 +48,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { title: 'Dashboard', icon: <Home className="h-4 w-4" />, path: '/', permission: 'dashboard' },
   { title: 'POS', icon: <ShoppingCart className="h-4 w-4" />, path: '/pos', permission: 'pos' },
+  { title: 'Kitchen Orders', icon: <Utensils className="h-4 w-4" />, path: '/kitchen-orders', permission: 'kitchen' },
   { title: 'Inventory', icon: <Package className="h-4 w-4" />, path: '/inventory', permission: 'inventory' },
   { title: 'Recipes', icon: <ScrollText className="h-4 w-4" />, path: '/recipes', permission: 'recipes' },
   { title: 'Prep Plans', icon: <ChefHat className="h-4 w-4" />, path: '/prep-plans', permission: 'prepplans' },
@@ -59,17 +61,28 @@ const menuItems: MenuItem[] = [
 export const ResponsiveSidebarContent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: teamMember } = useCurrentTeamMember();
+  const { data: teamMember, loading: teamMemberLoading } = useCurrentTeamMember();
   const { isMobile, touchSupported } = useDeviceDetection();
   const { setOpenMobile } = useSidebar();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Get user role and permissions
   const userRole = teamMember?.role as keyof typeof ROLE_PERMISSIONS;
-  const userPermissions = userRole ? ROLE_PERMISSIONS[userRole] || [] : [];
+  const userPermissions = userRole && ROLE_PERMISSIONS[userRole] 
+    ? ROLE_PERMISSIONS[userRole] 
+    : [];
 
-  const visibleItems = menuItems.filter(item =>
-    !item.permission || userPermissions.includes(item.permission)
-  );
+  // Filter menu items based on permissions
+  // If team member is still loading, show only dashboard (safe default)
+  // Otherwise, only show items that the user has permission for
+  const visibleItems = teamMemberLoading 
+    ? menuItems.filter(item => item.permission === 'dashboard')
+    : menuItems.filter(item => {
+        // If item has no permission requirement, don't show it (all items should have permissions)
+        if (!item.permission) return false;
+        // Only show if user has the required permission
+        return userPermissions.includes(item.permission);
+      });
 
   const handleItemClick = (path: string) => {
     if (isMobile && touchSupported) {

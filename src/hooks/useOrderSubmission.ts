@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { CartItem } from "@/types";
+import { OrderType } from "@/types/supabase";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
@@ -75,7 +76,7 @@ export const useOrderSubmission = () => {
   };
 
   const submitOrder = useMutation({
-    mutationFn: async (cart: CartItem[]) => {
+    mutationFn: async ({ cart, orderType }: { cart: CartItem[]; orderType: OrderType }) => {
       try {
         const timeZone = 'Asia/Kolkata'; // IST timezone
         const currentTime = toZonedTime(new Date(), timeZone);
@@ -102,7 +103,9 @@ export const useOrderSubmission = () => {
             .insert({
               items: bill.items,
               total: bill.total,
-              timestamp: formattedTime
+              timestamp: formattedTime,
+              order_type: orderType,
+              order_status: 'pending' // New orders start as pending
             })
             .select();
 

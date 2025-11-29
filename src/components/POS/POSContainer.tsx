@@ -16,6 +16,7 @@ import { CartItem, MenuCategory, PortionType } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toZonedTime } from "date-fns-tz";
 
 const POSContainer = () => {
@@ -25,6 +26,7 @@ const POSContainer = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [orderType, setOrderType] = useState<'take_away' | 'seating'>('take_away');
 
   const {
     cart,
@@ -116,7 +118,7 @@ const POSContainer = () => {
     if (!isValid) {
       setShowMissingRecipeAlert(true);
     } else {
-      submitOrder.mutate(cart, {
+      submitOrder.mutate({ cart, orderType }, {
         onSuccess: () => {
           setCart([]);
           setBillGroups([1]);
@@ -151,7 +153,7 @@ const POSContainer = () => {
     if (!isValid) {
       setShowMissingRecipeAlert(true);
     } else {
-      submitOrder.mutate(currentGroupItems, {
+      submitOrder.mutate({ cart: currentGroupItems, orderType }, {
         onSuccess: () => {
           setCart(cart.filter(item => item.billGroup !== currentBillGroup));
           
@@ -263,8 +265,30 @@ const POSContainer = () => {
           />
         </div>
 
-        <div className={`bg-muted/30 rounded-lg p-4 border shadow-sm ${isMobile ? 'order-2 mt-6' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
+        <div className={`rounded-lg p-4 border-2 shadow-sm transition-colors ${
+          orderType === 'seating' 
+            ? 'bg-green-50 border-green-300' 
+            : 'bg-blue-50 border-blue-300'
+        } ${isMobile ? 'order-2 mt-6' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
           <div className="mb-4">
+            <div className="mb-4">
+              <label className={`text-sm font-medium mb-2 block ${
+                orderType === 'seating' ? 'text-green-700' : 'text-blue-700'
+              }`}>Order Type</label>
+              <Select value={orderType} onValueChange={(value: 'take_away' | 'seating') => setOrderType(value)}>
+                <SelectTrigger className={
+                  orderType === 'seating' 
+                    ? 'border-green-300 bg-white' 
+                    : 'border-blue-300 bg-white'
+                }>
+                  <SelectValue placeholder="Select order type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="take_away">Take Away</SelectItem>
+                  <SelectItem value="seating">Seating</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold">Bill Groups</h2>
               <Button 
@@ -311,6 +335,7 @@ const POSContainer = () => {
                       .filter(item => item.billGroup === group)
                       .reduce((sum, item) => sum + (item.price * item.quantity), 0)
                     }
+                    orderType={orderType}
                     onUpdateQuantity={(index, change) => {
                       const globalIndex = cart.findIndex((item, i) => 
                         item.billGroup === group && 
@@ -394,7 +419,7 @@ const POSContainer = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
-              submitOrder.mutate(cart, {
+              submitOrder.mutate({ cart, orderType }, {
                 onSuccess: () => {
                   setCart([]);
                   setBillGroups([1]);
