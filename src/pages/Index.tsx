@@ -15,21 +15,23 @@ import {
   Calendar, 
   Clock,
   PlusCircle,
-  UserPlus
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz"; // Updated from utcToZonedTime
-import { useAuthStore } from "@/stores/authStore";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentTeamMember } from "@/hooks/useTeamMembers";
+import { Header } from "@/components/layout/Header";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, userRole, userName, session } = useAuthStore();
+  const { user } = useAuth();
+  const { data: teamMember } = useCurrentTeamMember();
   const timeZone = "Asia/Kolkata";
 
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
@@ -164,29 +166,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <header className="flex justify-between items-center py-8 px-6 bg-white/50 backdrop-blur-sm border-b">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Payasakkada
-          </h1>
-          <p className="text-muted-foreground mt-1">Smart restaurant management system</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground">
-            👤 {userName || "User"} | {userRole || "Guest"}
-          </div>
-          {userRole === 'Admin' ? (
-            <Button 
-              variant="outline" 
-              className="flex gap-2 hover:bg-primary/5" 
-              onClick={() => navigate('/team-management')}
-            >
-              <UserPlus className="h-5 w-5 text-primary" />
-              Team Management
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      <Header />
 
       <div className="container mx-auto p-6 space-y-8">
         <div className="flex items-center justify-between mb-8">

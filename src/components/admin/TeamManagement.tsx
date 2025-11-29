@@ -28,13 +28,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentTeamMember } from "@/hooks/useTeamMembers";
 import { Loader2, UserPlus } from "lucide-react";
 import { TeamMember } from "@/types";
 
 export function TeamManagement() {
   const { toast } = useToast();
-  const { userRole, inviteTeamMember } = useAuthStore();
+  const { user } = useAuth();
+  const { data: currentTeamMember } = useCurrentTeamMember();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Cashier");
   const [isLoading, setIsLoading] = useState(false);
@@ -93,18 +95,44 @@ export function TeamManagement() {
 
     setIsSubmitting(true);
     try {
-      await inviteTeamMember(email, role);
+      // Check if user already exists
+      const { data: existingMember } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (existingMember) {
+        throw new Error('User is already a team member');
+      }
+
+      // For now, directly create the team member
+      // In production, you'd send an invitation email first
+      const { data, error } = await supabase
+        .from('team_members')
+        .insert([
+          {
+            user_id: crypto.randomUUID(), // Temporary ID, will be updated when user signs up
+            email: email,
+            role: role,
+            name: email.split('@')[0]
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
       
       toast({
-        title: "Invitation sent",
-        description: `${email} has been invited as ${role}`,
+        title: "Team member added",
+        description: `${email} has been added as ${role}. They can now sign up and access the system.`,
       });
       
       setEmail("");
       fetchTeamMembers(); // Refresh the list
     } catch (error: any) {
       toast({
-        title: "Invitation failed",
+        title: "Failed to add team member",
         description: error.message,
         variant: "destructive",
       });
@@ -121,7 +149,7 @@ export function TeamManagement() {
   };
 
   // Only allow admins to access this component
-  if (userRole !== "Admin") {
+  if (currentTeamMember?.role !== "Admin") {
     return (
       <Card>
         <CardHeader>

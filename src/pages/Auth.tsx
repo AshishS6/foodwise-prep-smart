@@ -14,18 +14,27 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { session } = useAuthStore();
+  const { user, loading } = useAuth();
 
   // If already authenticated, redirect to home
-  if (session) {
+  if (user && !loading) {
     navigate("/");
     return null;
+  }
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   return (
