@@ -8,11 +8,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useTeamMembers';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import { TOUCH_TARGETS } from '@/constants/mobile';
 import { 
   User, 
   LogOut, 
@@ -26,6 +29,8 @@ export const UserMenu: React.FC = () => {
   const { data: teamMember } = useCurrentTeamMember();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isMobile } = useDeviceDetection();
+  const [sheetOpen, setSheetOpen] = React.useState(false);
 
   const handleLogout = async () => {
     try {
@@ -74,6 +79,89 @@ export const UserMenu: React.FC = () => {
   const getUserRole = () => {
     return teamMember?.role || 'Guest';
   };
+
+  if (isMobile) {
+    return (
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          <Button 
+            variant="ghost" 
+            className="flex items-center gap-2 h-auto p-2 min-h-[44px]"
+            style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}
+          >
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                {getUserInitials()}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="max-h-[60vh]">
+          <SheetHeader>
+            <SheetTitle>Account</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center gap-3 pb-4 border-b">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium text-base">{getUserDisplayName()}</p>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Shield className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">{getUserRole()}</span>
+                </div>
+              </div>
+            </div>
+            
+            <Button
+              variant="ghost"
+              className="w-full justify-start min-h-[44px] text-base"
+              style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}
+              onClick={() => {
+                navigate('/profile');
+                setSheetOpen(false);
+              }}
+            >
+              <User className="mr-3 h-5 w-5" />
+              <span>Profile</span>
+            </Button>
+            
+            <Button
+              variant="ghost"
+              className="w-full justify-start min-h-[44px] text-base"
+              style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}
+              onClick={() => {
+                navigate('/settings');
+                setSheetOpen(false);
+              }}
+            >
+              <Settings className="mr-3 h-5 w-5" />
+              <span>Settings</span>
+            </Button>
+            
+            <div className="pt-4 border-t">
+              <Button
+                variant="ghost"
+                className="w-full justify-start min-h-[44px] text-base text-destructive hover:text-destructive"
+                style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}
+                onClick={() => {
+                  handleLogout();
+                  setSheetOpen(false);
+                }}
+              >
+                <LogOut className="mr-3 h-5 w-5" />
+                <span>Log out</span>
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <DropdownMenu>

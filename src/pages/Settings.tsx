@@ -1,10 +1,15 @@
 import React from 'react';
 import { Header } from '@/components/layout/Header';
+import { MobileHeader } from '@/components/layout/MobileHeader';
+import { MobileContainer } from '@/components/layout/MobileContainer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MobileCard } from '@/components/ui/MobileCard';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import { TOUCH_TARGETS } from '@/constants/mobile';
 import { 
   Bell, 
   Moon, 
@@ -15,172 +20,187 @@ import {
 } from 'lucide-react';
 
 const Settings: React.FC = () => {
+  const { isMobile } = useDeviceDetection();
+  const CardComponent = isMobile ? MobileCard : Card;
+  const CardHeaderComponent = isMobile ? 'div' : CardHeader;
+  const CardContentComponent = isMobile ? 'div' : CardContent;
+  const CardTitleComponent = isMobile ? 'h3' : CardTitle;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <Header title="Settings" subtitle="Customize your experience" />
+      {isMobile ? (
+        <MobileHeader title="Settings" subtitle="Customize your experience" />
+      ) : (
+        <Header title="Settings" subtitle="Customize your experience" />
+      )}
       
-      <div className="container mx-auto p-6 max-w-4xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <MobileContainer className="md:container md:mx-auto md:p-6 md:max-w-4xl">
+        <div className={isMobile ? "space-y-4" : "grid grid-cols-1 md:grid-cols-2 gap-6"}>
           
           {/* Notifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <CardComponent>
+            <CardHeaderComponent className={isMobile ? "p-4 pb-2" : ""}>
+              <CardTitleComponent className={`flex items-center gap-2 ${isMobile ? "text-lg font-semibold" : ""}`}>
                 <Bell className="h-5 w-5" />
                 Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="low-stock">Low Stock Alerts</Label>
-                <Switch id="low-stock" defaultChecked />
+              </CardTitleComponent>
+            </CardHeaderComponent>
+            <CardContentComponent className={isMobile ? "p-4 pt-2 space-y-4" : "space-y-4"}>
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="low-stock" className="text-base">Low Stock Alerts</Label>
+                <Switch id="low-stock" defaultChecked style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="new-orders">New Order Notifications</Label>
-                <Switch id="new-orders" defaultChecked />
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="new-orders" className="text-base">New Order Notifications</Label>
+                <Switch id="new-orders" defaultChecked style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="daily-reports">Daily Reports</Label>
-                <Switch id="daily-reports" />
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="daily-reports" className="text-base">Daily Reports</Label>
+                <Switch id="daily-reports" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-            </CardContent>
-          </Card>
+            </CardContentComponent>
+          </CardComponent>
 
           {/* Appearance */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <CardComponent>
+            <CardHeaderComponent className={isMobile ? "p-4 pb-2" : ""}>
+              <CardTitleComponent className={`flex items-center gap-2 ${isMobile ? "text-lg font-semibold" : ""}`}>
                 <Moon className="h-5 w-5" />
                 Appearance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="dark-mode">Dark Mode</Label>
-                <Switch id="dark-mode" />
+              </CardTitleComponent>
+            </CardHeaderComponent>
+            <CardContentComponent className={isMobile ? "p-4 pt-2 space-y-4" : "space-y-4"}>
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="dark-mode" className="text-base">Dark Mode</Label>
+                <Switch id="dark-mode" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="compact-view">Compact View</Label>
-                <Switch id="compact-view" />
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="compact-view" className="text-base">Compact View</Label>
+                <Switch id="compact-view" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="animations">Animations</Label>
-                <Switch id="animations" defaultChecked />
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="animations" className="text-base">Animations</Label>
+                <Switch id="animations" defaultChecked style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-            </CardContent>
-          </Card>
+            </CardContentComponent>
+          </CardComponent>
 
           {/* Language & Region */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <CardComponent>
+            <CardHeaderComponent className={isMobile ? "p-4 pb-2" : ""}>
+              <CardTitleComponent className={`flex items-center gap-2 ${isMobile ? "text-lg font-semibold" : ""}`}>
                 <Globe className="h-5 w-5" />
                 Language & Region
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </CardTitleComponent>
+            </CardHeaderComponent>
+            <CardContentComponent className={isMobile ? "p-4 pt-2 space-y-4" : "space-y-4"}>
               <div className="space-y-2">
-                <Label>Language</Label>
-                <Button variant="outline" className="w-full justify-start">
+                <Label className="text-base">Language</Label>
+                <Button variant="outline" className="w-full justify-start min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                   English (US)
                 </Button>
               </div>
               <div className="space-y-2">
-                <Label>Currency</Label>
-                <Button variant="outline" className="w-full justify-start">
+                <Label className="text-base">Currency</Label>
+                <Button variant="outline" className="w-full justify-start min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                   ₹ Indian Rupee (INR)
                 </Button>
               </div>
               <div className="space-y-2">
-                <Label>Time Zone</Label>
-                <Button variant="outline" className="w-full justify-start">
+                <Label className="text-base">Time Zone</Label>
+                <Button variant="outline" className="w-full justify-start min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                   Asia/Kolkata (IST)
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </CardContentComponent>
+          </CardComponent>
 
           {/* Security */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <CardComponent>
+            <CardHeaderComponent className={isMobile ? "p-4 pb-2" : ""}>
+              <CardTitleComponent className={`flex items-center gap-2 ${isMobile ? "text-lg font-semibold" : ""}`}>
                 <Shield className="h-5 w-5" />
                 Security
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full">
+              </CardTitleComponent>
+            </CardHeaderComponent>
+            <CardContentComponent className={isMobile ? "p-4 pt-2 space-y-4" : "space-y-4"}>
+              <Button variant="outline" className="w-full min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                 Change Password
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                 Two-Factor Authentication
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                 Active Sessions
               </Button>
-            </CardContent>
-          </Card>
+            </CardContentComponent>
+          </CardComponent>
 
           {/* Data & Storage */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <CardComponent>
+            <CardHeaderComponent className={isMobile ? "p-4 pb-2" : ""}>
+              <CardTitleComponent className={`flex items-center gap-2 ${isMobile ? "text-lg font-semibold" : ""}`}>
                 <Database className="h-5 w-5" />
                 Data & Storage
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="auto-backup">Auto Backup</Label>
-                <Switch id="auto-backup" defaultChecked />
+              </CardTitleComponent>
+            </CardHeaderComponent>
+            <CardContentComponent className={isMobile ? "p-4 pt-2 space-y-4" : "space-y-4"}>
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="auto-backup" className="text-base">Auto Backup</Label>
+                <Switch id="auto-backup" defaultChecked style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                 Export Data
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                 Clear Cache
               </Button>
-            </CardContent>
-          </Card>
+            </CardContentComponent>
+          </CardComponent>
 
           {/* Mobile */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <CardComponent>
+            <CardHeaderComponent className={isMobile ? "p-4 pb-2" : ""}>
+              <CardTitleComponent className={`flex items-center gap-2 ${isMobile ? "text-lg font-semibold" : ""}`}>
                 <Smartphone className="h-5 w-5" />
                 Mobile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="mobile-notifications">Push Notifications</Label>
-                <Switch id="mobile-notifications" defaultChecked />
+              </CardTitleComponent>
+            </CardHeaderComponent>
+            <CardContentComponent className={isMobile ? "p-4 pt-2 space-y-4" : "space-y-4"}>
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="mobile-notifications" className="text-base">Push Notifications</Label>
+                <Switch id="mobile-notifications" defaultChecked style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="offline-mode">Offline Mode</Label>
-                <Switch id="offline-mode" />
+              <div className="flex items-center justify-between min-h-[44px]">
+                <Label htmlFor="offline-mode" className="text-base">Offline Mode</Label>
+                <Switch id="offline-mode" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }} />
               </div>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full min-h-[44px] text-base" style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}>
                 Download Mobile App
               </Button>
-            </CardContent>
-          </Card>
+            </CardContentComponent>
+          </CardComponent>
         </div>
 
         <Separator className="my-8" />
 
-        <div className="flex justify-between items-center">
+        <div className={`flex ${isMobile ? "flex-col gap-4" : "justify-between items-center"}`}>
           <div>
             <h3 className="text-lg font-semibold">Danger Zone</h3>
             <p className="text-sm text-muted-foreground">
               These actions cannot be undone
             </p>
           </div>
-          <Button variant="destructive" disabled>
+          <Button 
+            variant="destructive" 
+            disabled
+            className={isMobile ? "w-full min-h-[44px] text-base" : ""}
+            style={isMobile ? { minHeight: `${TOUCH_TARGETS.MINIMUM}px` } : undefined}
+          >
             Delete Account
           </Button>
         </div>
-      </div>
+      </MobileContainer>
     </div>
   );
 };

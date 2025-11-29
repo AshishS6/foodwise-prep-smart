@@ -5,22 +5,37 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { MobileLayoutProvider, useMobileLayout } from "@/contexts/MobileLayoutContext";
 import { useCurrentTeamMember } from "@/hooks/useTeamMembers";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { ResponsiveSidebar } from "@/components/layout/ResponsiveSidebar";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
+import { Suspense, lazy } from "react";
 
-import Index from "./pages/Index";
-import POS from "./pages/POS";
-import Inventory from "./pages/Inventory";
-import Recipes from "./pages/Recipes";
-import PrepPlans from "./pages/PrepPlans";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
-import OrderHistory from "./pages/OrderHistory";
-import Analytics from "./pages/Analytics";
-import TeamManagement from "./pages/TeamManagement";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import AuthCallback from "./pages/AuthCallback";
-import Test from "./pages/Test";
+// Lazy load pages for code splitting
+const Index = lazy(() => import("./pages/Index"));
+const POS = lazy(() => import("./pages/POS"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const Recipes = lazy(() => import("./pages/Recipes"));
+const PrepPlans = lazy(() => import("./pages/PrepPlans"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const OrderHistory = lazy(() => import("./pages/OrderHistory"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const TeamManagement = lazy(() => import("./pages/TeamManagement"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const Test = lazy(() => import("./pages/Test"));
+
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+);
 
 // Create a new QueryClient with specific configuration for better debugging
 const queryClient = new QueryClient({
@@ -135,13 +150,18 @@ const QuickActions = () => {
   return null;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+const AppContent = () => {
+  const { isMobileLayout, showBottomNav } = useMobileLayout();
+  const { isMobile } = useDeviceDetection();
+  const location = useLocation();
+
+  // Hide bottom nav on auth pages
+  const shouldShowBottomNav = showBottomNav && isMobile && !location.pathname.startsWith('/auth');
+
+  return (
+    <>
+      {!isMobile && (
+        <ResponsiveSidebar>
           <Routes>
             <Route path="/test" element={<Test />} />
             <Route path="/auth" element={<Auth />} />
@@ -150,7 +170,9 @@ const App = () => (
               path="/" 
               element={
                 <ProtectedRoute requiredPermission="dashboard">
-                  <Index />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Index />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -158,7 +180,9 @@ const App = () => (
               path="/pos" 
               element={
                 <ProtectedRoute requiredPermission="pos">
-                  <POS />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <POS />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -166,7 +190,9 @@ const App = () => (
               path="/inventory" 
               element={
                 <ProtectedRoute requiredPermission="inventory">
-                  <Inventory />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Inventory />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -174,7 +200,9 @@ const App = () => (
               path="/recipes" 
               element={
                 <ProtectedRoute requiredPermission="recipes">
-                  <Recipes />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Recipes />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -182,7 +210,9 @@ const App = () => (
               path="/prep-plans" 
               element={
                 <ProtectedRoute requiredPermission="prepplans">
-                  <PrepPlans />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PrepPlans />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -190,15 +220,19 @@ const App = () => (
               path="/order-history" 
               element={
                 <ProtectedRoute requiredPermission="orderhistory">
-                  <OrderHistory />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <OrderHistory />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
             <Route 
-              path="/analytics" 
+              path="/analytics"
               element={
                 <ProtectedRoute requiredPermission="analytics">
-                  <Analytics />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Analytics />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -216,7 +250,9 @@ const App = () => (
               path="/team-management" 
               element={
                 <ProtectedRoute requiredPermission="team">
-                  <TeamManagement />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <TeamManagement />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -224,7 +260,9 @@ const App = () => (
               path="/profile" 
               element={
                 <ProtectedRoute requiredPermission="dashboard">
-                  <Profile />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Profile />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
@@ -232,15 +270,206 @@ const App = () => (
               path="/settings" 
               element={
                 <ProtectedRoute requiredPermission="dashboard">
-                  <Settings />
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Settings />
+                  </Suspense>
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/test" 
+              element={
+                <Suspense fallback={<LoadingFallback />}>
+                  <Test />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="/auth" 
+              element={
+                <Suspense fallback={<LoadingFallback />}>
+                  <Auth />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="/auth/callback" 
+              element={
+                <Suspense fallback={<LoadingFallback />}>
+                  <AuthCallback />
+                </Suspense>
+              } 
+            />
             {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <NotFound />
+              </Suspense>
+            } />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+        </ResponsiveSidebar>
+      )}
+      {isMobile && (
+        <Routes>
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute requiredPermission="dashboard">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Index />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/pos" 
+              element={
+                <ProtectedRoute requiredPermission="pos">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <POS />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/inventory" 
+              element={
+                <ProtectedRoute requiredPermission="inventory">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Inventory />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/recipes" 
+              element={
+                <ProtectedRoute requiredPermission="recipes">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Recipes />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/prep-plans" 
+              element={
+                <ProtectedRoute requiredPermission="prepplans">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PrepPlans />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/order-history" 
+              element={
+                <ProtectedRoute requiredPermission="orderhistory">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <OrderHistory />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/analytics"
+              element={
+                <ProtectedRoute requiredPermission="analytics">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Analytics />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/reports" 
+              element={
+                <ProtectedRoute requiredPermission="reports">
+                  <div className="container mx-auto p-6">
+                    <h1 className="text-2xl font-bold mb-4">Daily Reports Coming Soon</h1>
+                  </div>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/team-management" 
+              element={
+                <ProtectedRoute requiredPermission="team">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <TeamManagement />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute requiredPermission="dashboard">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Profile />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute requiredPermission="dashboard">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Settings />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/test" 
+              element={
+                <Suspense fallback={<LoadingFallback />}>
+                  <Test />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="/auth" 
+              element={
+                <Suspense fallback={<LoadingFallback />}>
+                  <Auth />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="/auth/callback" 
+              element={
+                <Suspense fallback={<LoadingFallback />}>
+                  <AuthCallback />
+                </Suspense>
+              } 
+            />
+            {/* Catch-all route */}
+            <Route path="*" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <NotFound />
+              </Suspense>
+            } />
+          </Routes>
+      )}
+      {shouldShowBottomNav && <MobileBottomNav />}
+    </>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <MobileLayoutProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </MobileLayoutProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

@@ -51,22 +51,35 @@ const OrderList = ({
 
   return (
     <>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Current Order</h2>
-        <ShoppingCart className="h-5 w-5" />
+      <div className="flex justify-between items-center mb-4 pb-3 border-b">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">Current Order</h2>
+          {cart.length > 0 && (
+            <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs font-bold">
+              {cart.length}
+            </span>
+          )}
+        </div>
       </div>
       
       {cart.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">
-          Your cart is empty. Add items from the menu.
-        </p>
+        <div className="text-center py-8">
+          <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+          <p className="text-muted-foreground font-medium">
+            Your cart is empty
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Add items from the menu above
+          </p>
+        </div>
       ) : (
         <>
           <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto">
             {cart.map((item, index) => (
               <div 
                 key={`${item.menuItemId}-${item.portionType.label}-${index}`} 
-                className="flex flex-col bg-background p-3 rounded-md"
+                className="flex flex-col bg-background border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
@@ -90,9 +103,9 @@ const OrderList = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
+                      variant="outline" 
+                      size="icon" 
+                      className="h-9 w-9"
                       onClick={() => onUpdateQuantity(index, -1)}
                     >
                       <MinusCircle className="h-4 w-4" />
@@ -104,22 +117,22 @@ const OrderList = ({
                         const newQuantity = parseInt(e.target.value) || 0;
                         onSetQuantity(index, newQuantity);
                       }} 
-                      className="w-16 h-8 text-center" 
+                      className="w-16 h-9 text-center font-semibold" 
                       min="0"
                       onKeyDown={(e) => handleKeyDown(e, index)}
                     />
                     <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
+                      variant="outline" 
+                      size="icon" 
+                      className="h-9 w-9"
                       onClick={() => onUpdateQuantity(index, 1)}
                     >
                       <PlusCircle className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      size="icon" 
+                      className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => onRemoveItem(index)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -172,18 +185,15 @@ const OrderList = ({
             ))}
           </div>
 
-          <div className="py-3 border-t border-border">
-            <div className="flex justify-between mb-2 font-semibold">
+          <div className="py-4 border-t border-border bg-muted/30 -mx-3 -mb-3 px-3 rounded-b-lg">
+            <div className="flex justify-between mb-2 text-sm text-muted-foreground">
               <span>Subtotal:</span>
               <span>₹{total.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between font-bold text-lg">
+            <div className="flex justify-between font-bold text-lg mb-4">
               <span>Total:</span>
-              <span>₹{total.toFixed(2)}</span>
+              <span className="text-primary">₹{total.toFixed(2)}</span>
             </div>
-          </div>
-
-          <div className="mt-4">
             <Button 
               className="w-full" 
               size="lg"

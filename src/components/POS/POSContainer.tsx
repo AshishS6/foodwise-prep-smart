@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useCart } from "@/hooks/useCart";
 import { useBillGroups } from "@/hooks/useBillGroups";
 import { useOrderSubmission } from "@/hooks/useOrderSubmission";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import MenuList from "./MenuList";
 import OrderList from "./OrderList";
 import { CartItem, MenuCategory, PortionType } from "@/types";
@@ -214,36 +215,55 @@ const POSContainer = () => {
     });
   };
 
-  return (
-    <div className="container mx-auto p-4">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-2"
-            onClick={() => {
-              console.log("Navigating back to home");
-              navigate('/');
-            }}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-          <h1 className="text-2xl font-bold">Point of Sale</h1>
-        </div>
-      </div>
+  const { isMobile } = useDeviceDetection();
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
+  return (
+    <div className="container mx-auto p-4 md:p-6">
+      {!isMobile && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mr-2"
+              onClick={() => {
+                console.log("Navigating back to home");
+                navigate('/');
+              }}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">Point of Sale</h1>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4 order-1">
           <MenuList 
-            onAddToCart={(item, portionType, note) => addToCart(item, portionType, currentBillGroup, note)} 
+            onAddToCart={(item, portionType, note) => addToCart(item, portionType, currentBillGroup, note)}
+            onUpdateQuantity={(itemId, portionLabel, change) => {
+              const cartItemIndex = cart.findIndex(item => 
+                item.menuItemId === itemId && 
+                item.portionType.label === portionLabel &&
+                item.billGroup === currentBillGroup
+              );
+              if (cartItemIndex !== -1) {
+                updateQuantity(cartItemIndex, change);
+              } else if (change > 0) {
+                // Item not in cart, but MenuList will handle adding via onAddToCart
+                // This is a fallback - MenuList should call onAddToCart when quantity is 0
+              }
+            }}
+            cart={cart}
+            currentBillGroup={currentBillGroup}
             searchTerm={searchTerm} 
             setSearchTerm={setSearchTerm} 
           />
         </div>
 
-        <div className="bg-muted/30 rounded-lg p-4 border shadow-sm">
+        <div className={`bg-muted/30 rounded-lg p-4 border shadow-sm ${isMobile ? 'order-2 mt-6' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold">Bill Groups</h2>

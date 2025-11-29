@@ -19,3 +19,7 @@ export { useToast } from './use-toast';
 export { useBillGroups } from './useBillGroups';
 export { useCart } from './useCart';
 export { useOrderSubmission } from './useOrderSubmission';
+
+// Mobile optimization hooks
+export { useDeviceDetection } from './useDeviceDetection';
+export { useResponsive, useResponsiveValue, useBreakpoint } from './useResponsive';

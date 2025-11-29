@@ -53,15 +53,18 @@ export const SignInForm = () => {
   };
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-4 mt-4 pb-safe-bottom">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           placeholder="your@email.com"
           type="email"
+          inputMode="email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="min-h-[44px] text-base"
         />
       </div>
       <div className="space-y-2">
@@ -69,12 +72,15 @@ export const SignInForm = () => {
         <Input
           id="password"
           type="password"
+          inputMode="text"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className="min-h-[44px] text-base"
         />
       </div>
       <Button
-        className="w-full"
+        className="w-full min-h-[44px] text-base"
         onClick={handleSignIn}
         disabled={isLoading}
       >

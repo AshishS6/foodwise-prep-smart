@@ -12,10 +12,29 @@ export default {
 	theme: {
 		container: {
 			center: true,
-			padding: '2rem',
+			padding: {
+				DEFAULT: '1rem',
+				xs: '0.75rem',
+				sm: '1rem',
+				md: '1.5rem',
+				lg: '2rem',
+			},
 			screens: {
+				xs: '320px',
+				sm: '640px',
+				md: '768px',
+				lg: '1024px',
+				xl: '1280px',
 				'2xl': '1400px'
 			}
+		},
+		screens: {
+			xs: '320px',
+			sm: '640px',
+			md: '768px',
+			lg: '1024px',
+			xl: '1280px',
+			'2xl': '1536px',
 		},
 		extend: {
 			colors: {
@@ -68,6 +87,30 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+			spacing: {
+				'touch': '44px', // Minimum touch target size
+				'touch-sm': '36px', // Small touch target
+				'touch-lg': '56px', // Large touch target
+				'safe-top': 'env(safe-area-inset-top)',
+				'safe-bottom': 'env(safe-area-inset-bottom)',
+				'safe-left': 'env(safe-area-inset-left)',
+				'safe-right': 'env(safe-area-inset-right)',
+			},
+			minHeight: {
+				'touch': '44px',
+				'touch-sm': '36px',
+				'touch-lg': '56px',
+				'screen-safe': 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+			},
+			minWidth: {
+				'touch': '44px',
+				'touch-sm': '36px',
+				'touch-lg': '56px',
+			},
+			maxWidth: {
+				'mobile': '100vw',
+				'mobile-content': 'calc(100vw - 2rem)',
+			},
 			keyframes: {
 				'accordion-down': {
 					from: {
@@ -89,6 +132,18 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
+			},
+			gridTemplateColumns: {
+				'mobile-menu': 'repeat(auto-fit, minmax(120px, 1fr))',
+				'mobile-cards': 'repeat(auto-fit, minmax(280px, 1fr))',
+				'touch-grid': 'repeat(auto-fit, minmax(44px, 1fr))',
+			},
+			fontSize: {
+				'mobile-xs': ['0.75rem', { lineHeight: '1rem' }],
+				'mobile-sm': ['0.875rem', { lineHeight: '1.25rem' }],
+				'mobile-base': ['1rem', { lineHeight: '1.5rem' }],
+				'mobile-lg': ['1.125rem', { lineHeight: '1.75rem' }],
+				'mobile-xl': ['1.25rem', { lineHeight: '1.75rem' }],
 			}
 		}
 	},
