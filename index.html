@@ -28,7 +28,26 @@
   <body>
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+    <script>
+      // Only load gptengineer.js in development (local dev server)
+      // This prevents errors in production deployments
+      (function() {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.includes('localhost')) {
+          try {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.gpteng.co/gptengineer.js';
+            script.type = 'module';
+            script.onerror = function() {
+              // Silently fail if script can't load
+            };
+            document.body.appendChild(script);
+          } catch (e) {
+            // Silently ignore errors
+            console.debug('gptengineer.js not loaded:', e);
+          }
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
