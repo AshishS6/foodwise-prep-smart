@@ -10,6 +10,7 @@ import { useCart } from "@/hooks/useCart";
 import { useBillGroups } from "@/hooks/useBillGroups";
 import { useOrderSubmission } from "@/hooks/useOrderSubmission";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
+import { LAYOUT_DIMENSIONS } from "@/constants/mobile";
 import MenuList from "./MenuList";
 import OrderList from "./OrderList";
 import { CartItem, MenuCategory, PortionType } from "@/types";
@@ -304,138 +305,280 @@ const POSContainer = () => {
           />
         </div>
 
-        <div className={`rounded-lg p-4 border-2 shadow-sm transition-colors ${
+        <div className={`rounded-lg border-2 shadow-sm transition-colors ${
           currentOrderType === 'seating' 
             ? 'bg-green-50 border-green-300' 
             : 'bg-blue-50 border-blue-300'
-        } ${isMobile ? 'order-2 mt-6' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
-          <div className="mb-4">
-            <div className="mb-4">
-              <label className={`text-sm font-medium mb-2 block ${
-                currentOrderType === 'seating' ? 'text-green-700' : 'text-blue-700'
-              }`}>Order Type (Bill #{currentBillGroup})</label>
-              <Select value={currentOrderType} onValueChange={(value: 'take_away' | 'seating') => setOrderTypeForBill(currentBillGroup, value)}>
-                <SelectTrigger className={
-                  currentOrderType === 'seating' 
-                    ? 'border-green-300 bg-white' 
-                    : 'border-blue-300 bg-white'
-                }>
-                  <SelectValue placeholder="Select order type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="take_away">Take Away</SelectItem>
-                  <SelectItem value="seating">Seating</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold">Bill Groups</h2>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  const newGroup = addBillGroup();
-                  // Initialize order type for new bill group
-                  setOrderTypes(prev => ({ ...prev, [newGroup]: 'take_away' }));
-                }}
-                className="flex items-center gap-1"
-              >
-                <Split className="h-3 w-3" />
-                New Bill
-              </Button>
-            </div>
-            <Tabs value={String(currentBillGroup)} onValueChange={(val) => setCurrentBillGroup(Number(val))}>
-              <TabsList className="w-full flex overflow-x-auto">
-                {billGroups.map((group) => (
-                  <TabsTrigger 
-                    key={group} 
-                    value={String(group)}
-                    className="flex-1 min-w-[60px]"
+        } ${isMobile ? 'order-2 mt-6 flex flex-col' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
+          {isMobile ? (
+            <>
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto p-4 pb-24" style={{
+                maxHeight: `calc(100vh - ${LAYOUT_DIMENSIONS.MOBILE_HEADER_HEIGHT + LAYOUT_DIMENSIONS.BOTTOM_NAV_HEIGHT + 120}px)`
+              }}>
+                <div className="mb-4">
+                  <label className={`text-sm font-medium mb-2 block ${
+                    currentOrderType === 'seating' ? 'text-green-700' : 'text-blue-700'
+                  }`}>Order Type (Bill #{currentBillGroup})</label>
+                  <Select value={currentOrderType} onValueChange={(value: 'take_away' | 'seating') => setOrderTypeForBill(currentBillGroup, value)}>
+                    <SelectTrigger className={
+                      currentOrderType === 'seating' 
+                        ? 'border-green-300 bg-white' 
+                        : 'border-blue-300 bg-white'
+                    }>
+                      <SelectValue placeholder="Select order type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="take_away">Take Away</SelectItem>
+                      <SelectItem value="seating">Seating</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="font-semibold">Bill Groups</h2>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      const newGroup = addBillGroup();
+                      setOrderTypes(prev => ({ ...prev, [newGroup]: 'take_away' }));
+                    }}
+                    className="flex items-center gap-1"
                   >
-                    Bill #{group}
-                    {billGroups.length > 1 && group !== 1 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-5 w-5 p-0 ml-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteBillGroupInner(group);
-                        }}
+                    <Split className="h-3 w-3" />
+                    New Bill
+                  </Button>
+                </div>
+                <Tabs value={String(currentBillGroup)} onValueChange={(val) => setCurrentBillGroup(Number(val))}>
+                  <TabsList className="w-full flex overflow-x-auto">
+                    {billGroups.map((group) => (
+                      <TabsTrigger 
+                        key={group} 
+                        value={String(group)}
+                        className="flex-1 min-w-[60px]"
                       >
-                        ×
-                      </Button>
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              
-              {billGroups.map((group) => (
-                <TabsContent key={group} value={String(group)}>
-                  <OrderList 
-                    cart={cart.filter(item => item.billGroup === group)} 
-                    total={cart
-                      .filter(item => item.billGroup === group)
-                      .reduce((sum, item) => sum + (item.price * item.quantity), 0)
-                    }
-                    orderType={orderTypes[group] || 'take_away'}
-                    onUpdateQuantity={(index, change) => {
-                      const globalIndex = cart.findIndex((item, i) => 
-                        item.billGroup === group && 
-                        i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
-                      );
-                      updateQuantity(globalIndex, change);
-                    }}
-                    onSetQuantity={(index, quantity) => {
-                      const globalIndex = cart.findIndex((item, i) => 
-                        item.billGroup === group && 
-                        i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
-                      );
-                      setItemQuantity(globalIndex, quantity);
-                    }}
-                    onUpdateNote={(index, note) => {
-                      const globalIndex = cart.findIndex((item, i) => 
-                        item.billGroup === group && 
-                        i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
-                      );
-                      updateNote(globalIndex, note);
-                    }}
-                    onRemoveItem={(index) => {
-                      const globalIndex = cart.findIndex((item, i) => 
-                        item.billGroup === group && 
-                        i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
-                      );
-                      removeFromCart(globalIndex);
-                    }}
-                    onSubmitOrder={submitCurrentGroup}
-                    isSubmitting={submitOrder.isPending || isValidatingOrder}
-                  />
-                  <div className="mt-2">
-                    <Button
-                      variant="outline"
-                      className="w-full text-sm"
-                      onClick={submitCurrentGroup}
-                      disabled={submitOrder.isPending || isValidatingOrder}
-                    >
-                      <FileText className="h-4 w-4 mr-1" />
-                      Complete Bill #{group}
-                    </Button>
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
+                        Bill #{group}
+                        {billGroups.length > 1 && group !== 1 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-5 w-5 p-0 ml-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteBillGroupInner(group);
+                            }}
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  
+                  {billGroups.map((group) => (
+                    <TabsContent key={group} value={String(group)}>
+                      <OrderList 
+                        cart={cart.filter(item => item.billGroup === group)} 
+                        total={cart
+                          .filter(item => item.billGroup === group)
+                          .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                        }
+                        orderType={orderTypes[group] || 'take_away'}
+                        onUpdateQuantity={(index, change) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          updateQuantity(globalIndex, change);
+                        }}
+                        onSetQuantity={(index, quantity) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          setItemQuantity(globalIndex, quantity);
+                        }}
+                        onUpdateNote={(index, note) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          updateNote(globalIndex, note);
+                        }}
+                        onRemoveItem={(index) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          removeFromCart(globalIndex);
+                        }}
+                        onSubmitOrder={submitCurrentGroup}
+                        isSubmitting={submitOrder.isPending || isValidatingOrder}
+                      />
+                      <div className="mt-2">
+                        <Button
+                          variant="outline"
+                          className="w-full text-sm"
+                          onClick={submitCurrentGroup}
+                          disabled={submitOrder.isPending || isValidatingOrder}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          Complete Bill #{group}
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
 
-          <div className="mt-4 pt-4 border-t">
-            <Button 
-              className="w-full" 
-              size="lg"
-              onClick={handleOrderSubmit}
-              disabled={submitOrder.isPending || isValidatingOrder || cart.length === 0}
-            >
-              {submitOrder.isPending || isValidatingOrder ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
-            </Button>
-          </div>
+              {/* Sticky Complete All Bills button */}
+              <div className={`sticky bottom-0 p-4 pt-3 border-t-2 ${
+                currentOrderType === 'seating' 
+                  ? 'bg-green-50 border-green-300' 
+                  : 'bg-blue-50 border-blue-300'
+              }`} style={{
+                paddingBottom: `calc(${LAYOUT_DIMENSIONS.BOTTOM_NAV_HEIGHT}px + 1rem)`
+              }}>
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={handleOrderSubmit}
+                  disabled={submitOrder.isPending || isValidatingOrder || cart.length === 0}
+                >
+                  {submitOrder.isPending || isValidatingOrder ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-4">
+                <div className="mb-4">
+                  <label className={`text-sm font-medium mb-2 block ${
+                    currentOrderType === 'seating' ? 'text-green-700' : 'text-blue-700'
+                  }`}>Order Type (Bill #{currentBillGroup})</label>
+                  <Select value={currentOrderType} onValueChange={(value: 'take_away' | 'seating') => setOrderTypeForBill(currentBillGroup, value)}>
+                    <SelectTrigger className={
+                      currentOrderType === 'seating' 
+                        ? 'border-green-300 bg-white' 
+                        : 'border-blue-300 bg-white'
+                    }>
+                      <SelectValue placeholder="Select order type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="take_away">Take Away</SelectItem>
+                      <SelectItem value="seating">Seating</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="font-semibold">Bill Groups</h2>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      const newGroup = addBillGroup();
+                      setOrderTypes(prev => ({ ...prev, [newGroup]: 'take_away' }));
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <Split className="h-3 w-3" />
+                    New Bill
+                  </Button>
+                </div>
+                <Tabs value={String(currentBillGroup)} onValueChange={(val) => setCurrentBillGroup(Number(val))}>
+                  <TabsList className="w-full flex overflow-x-auto">
+                    {billGroups.map((group) => (
+                      <TabsTrigger 
+                        key={group} 
+                        value={String(group)}
+                        className="flex-1 min-w-[60px]"
+                      >
+                        Bill #{group}
+                        {billGroups.length > 1 && group !== 1 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-5 w-5 p-0 ml-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteBillGroupInner(group);
+                            }}
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  
+                  {billGroups.map((group) => (
+                    <TabsContent key={group} value={String(group)}>
+                      <OrderList 
+                        cart={cart.filter(item => item.billGroup === group)} 
+                        total={cart
+                          .filter(item => item.billGroup === group)
+                          .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                        }
+                        orderType={orderTypes[group] || 'take_away'}
+                        onUpdateQuantity={(index, change) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          updateQuantity(globalIndex, change);
+                        }}
+                        onSetQuantity={(index, quantity) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          setItemQuantity(globalIndex, quantity);
+                        }}
+                        onUpdateNote={(index, note) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          updateNote(globalIndex, note);
+                        }}
+                        onRemoveItem={(index) => {
+                          const globalIndex = cart.findIndex((item, i) => 
+                            item.billGroup === group && 
+                            i === index + cart.filter(item => item.billGroup === group).findIndex((_, idx) => idx === 0)
+                          );
+                          removeFromCart(globalIndex);
+                        }}
+                        onSubmitOrder={submitCurrentGroup}
+                        isSubmitting={submitOrder.isPending || isValidatingOrder}
+                      />
+                      <div className="mt-2">
+                        <Button
+                          variant="outline"
+                          className="w-full text-sm"
+                          onClick={submitCurrentGroup}
+                          disabled={submitOrder.isPending || isValidatingOrder}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          Complete Bill #{group}
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+
+              <div className="mt-4 pt-4 border-t p-4">
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={handleOrderSubmit}
+                  disabled={submitOrder.isPending || isValidatingOrder || cart.length === 0}
+                >
+                  {submitOrder.isPending || isValidatingOrder ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

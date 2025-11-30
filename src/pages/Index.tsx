@@ -604,59 +604,24 @@ const Index = () => {
         </div>
 
         {!isMobile && (
-          <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className="rounded-full h-12 w-12 shadow-lg" onClick={() => navigate('/pos')}>
-                  <ShoppingCart className="h-6 w-6" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>New Order</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className="rounded-full h-12 w-12 shadow-lg bg-orange-500 hover:bg-orange-600" onClick={() => navigate('/inventory')}>
-                  <Package className="h-6 w-6" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>New Purchase</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className="rounded-full h-12 w-12 shadow-lg bg-green-500 hover:bg-green-600" onClick={() => navigate('/recipes')}>
-                  <ScrollText className="h-6 w-6" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>Add Recipe</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className="rounded-full h-12 w-12 shadow-lg bg-indigo-500 hover:bg-indigo-600" onClick={() => navigate('/analytics')}>
-                  <BarChart3 className="h-6 w-6" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>View Analytics</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+          <div className="fixed bottom-6 right-6 z-10">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    className="rounded-full h-16 w-16 shadow-lg hover:shadow-xl transition-all duration-200" 
+                    onClick={() => navigate('/pos')}
+                    size="lg"
+                  >
+                    <ShoppingCart className="h-8 w-8" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>New Order</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         )}
         </div>
       </MobileContainer>
