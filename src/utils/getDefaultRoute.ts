@@ -20,3 +20,4 @@ export const getDefaultRoute = (teamMember: TeamMember | null | undefined): stri
   // All other roles land on dashboard
   return '/';
 };
+

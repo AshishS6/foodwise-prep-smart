@@ -99,3 +99,4 @@ CREATE POLICY "Allow authenticated users to update invitations" ON public.invita
 CREATE INDEX IF NOT EXISTS idx_invitations_token ON public.invitations(token);
 CREATE INDEX IF NOT EXISTS idx_invitations_email ON public.invitations(email);
 CREATE INDEX IF NOT EXISTS idx_invitations_expires_at ON public.invitations(expires_at);
+

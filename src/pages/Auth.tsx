@@ -24,7 +24,7 @@ import { getDefaultRoute } from "@/utils/getDefaultRoute";
 const Auth = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { data: teamMember } = useCurrentTeamMember();
+  const { data: teamMember, isLoading: teamMemberLoading } = useCurrentTeamMember();
   const [searchParams] = useSearchParams();
   const [defaultTab, setDefaultTab] = useState<"signin" | "signup">("signin");
   const inviteToken = searchParams.get("token");
@@ -39,19 +39,26 @@ const Auth = () => {
 
   // If already authenticated, redirect to role-based default route (use useEffect to avoid render issues)
   useEffect(() => {
-    if (user && !loading) {
-      const defaultRoute = getDefaultRoute(teamMember);
-      navigate(defaultRoute, { replace: true });
+    if (user && !loading && !teamMemberLoading) {
+      // Wait for team member data to be available before redirecting
+      // This prevents redirect loops and blank pages
+      const timer = setTimeout(() => {
+        const defaultRoute = getDefaultRoute(teamMember);
+        navigate(defaultRoute, { replace: true });
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [user, loading, teamMember, navigate]);
+  }, [user, loading, teamMember, teamMemberLoading, navigate]);
 
-  // If already authenticated, show loading while redirecting
+  // If already authenticated, show loading while redirecting or waiting for team member data
   if (user && !loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Redirecting...</p>
+          <p className="text-muted-foreground">
+            {teamMemberLoading ? "Loading..." : "Redirecting..."}
+          </p>
         </div>
       </div>
     );

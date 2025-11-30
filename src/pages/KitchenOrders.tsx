@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,35 +8,20 @@ import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { useAuthStore } from "@/stores/authStore";
 import { format } from "date-fns";
 import { OrderDetailsDialog } from "@/components/orders/OrderDetailsDialog";
 import { OrderStatus } from "@/types/supabase";
+import { MobileHeader } from "@/components/layout/MobileHeader";
+import { MobileContainer } from "@/components/layout/MobileContainer";
+import { Header } from "@/components/layout/Header";
 
 const KitchenOrders = () => {
   const navigate = useNavigate();
-  const { session, userRole } = useAuthStore();
   const { isMobile } = useDeviceDetection();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (!session) {
-      navigate('/auth');
-      return;
-    }
-
-    // Only kitchen staff should access this page
-    if (userRole !== 'Kitchen Staff' && userRole !== 'Admin' && userRole !== 'Manager') {
-      navigate('/');
-      toast({
-        title: "Access restricted",
-        description: "This page is only accessible to kitchen staff.",
-        variant: "destructive"
-      });
-      return;
-    }
-  }, [session, userRole, navigate]);
+  // Note: Authentication and permission checks are handled by ProtectedRoute in App.tsx
 
   const queryClient = useQueryClient();
 
@@ -152,40 +137,56 @@ const KitchenOrders = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p>Loading orders...</p>
-        </div>
+      <div className="min-h-screen bg-background">
+        {isMobile ? (
+          <MobileHeader title="Kitchen Orders" />
+        ) : (
+          <Header />
+        )}
+        <MobileContainer className="md:container md:mx-auto md:p-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <p>Loading orders...</p>
+          </div>
+        </MobileContainer>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-2"
-            onClick={() => navigate('/')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-          <div className="flex items-center gap-2">
-            <Utensils className="h-6 w-6" />
-            <h1 className="text-2xl font-bold">Kitchen Orders</h1>
+    <div className="min-h-screen bg-background">
+      {isMobile ? (
+        <MobileHeader title="Kitchen Orders" />
+      ) : (
+        <Header />
+      )}
+
+      <MobileContainer className="md:container md:mx-auto md:p-4">
+        {!isMobile && (
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mr-2"
+                onClick={() => navigate('/')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <div className="flex items-center gap-2">
+                <Utensils className="h-6 w-6" />
+                <h1 className="text-2xl font-bold">Kitchen Orders</h1>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => refetch()}
+            >
+              Refresh
+            </Button>
           </div>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => refetch()}
-        >
-          Refresh
-        </Button>
-      </div>
+        )}
 
       <Card className="mb-6">
         <CardHeader>
@@ -297,6 +298,7 @@ const KitchenOrders = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
+      </MobileContainer>
     </div>
   );
 };

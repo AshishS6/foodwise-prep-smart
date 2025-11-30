@@ -11,3 +11,4 @@ ADD COLUMN IF NOT EXISTS order_status order_status DEFAULT 'pending';
 -- Add index for better query performance
 CREATE INDEX IF NOT EXISTS idx_orders_order_status ON public.orders(order_status);
 CREATE INDEX IF NOT EXISTS idx_orders_status_timestamp ON public.orders(order_status, timestamp);
+
