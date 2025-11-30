@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, BarChart3, Users, Settings, Utensils } from 'lucide-react';
+import { Home, ShoppingCart, Package, BarChart3, Users, Settings, Utensils, ScrollText, ChefHat } from 'lucide-react';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { useCurrentTeamMember } from '@/hooks/useTeamMembers';
 import { TOUCH_TARGETS, LAYOUT_DIMENSIONS, ANIMATION_DURATIONS } from '@/constants/mobile';
@@ -16,7 +16,7 @@ interface NavItem {
 
 const ROLE_PERMISSIONS = {
   'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team', 'kitchen'],
-  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans', 'kitchen'],
+  'Kitchen Staff': ['pos', 'inventory', 'recipes', 'prepplans', 'kitchen'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
   'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'kitchen']
 };
@@ -25,7 +25,7 @@ export const MobileBottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isMobile } = useDeviceDetection();
-  const { data: teamMember, loading: teamMemberLoading } = useCurrentTeamMember();
+  const { data: teamMember, isLoading: teamMemberLoading } = useCurrentTeamMember();
 
   // Don't show on desktop or on auth pages
   if (!isMobile || location.pathname.startsWith('/auth')) {
@@ -40,6 +40,8 @@ export const MobileBottomNav: React.FC = () => {
     { path: '/pos', icon: <ShoppingCart className="h-5 w-5" />, label: 'POS', permission: 'pos' },
     { path: '/kitchen-orders', icon: <Utensils className="h-5 w-5" />, label: 'Kitchen', permission: 'kitchen' },
     { path: '/inventory', icon: <Package className="h-5 w-5" />, label: 'Inventory', permission: 'inventory' },
+    { path: '/recipes', icon: <ScrollText className="h-5 w-5" />, label: 'Recipes', permission: 'recipes' },
+    { path: '/prep-plans', icon: <ChefHat className="h-5 w-5" />, label: 'Prep', permission: 'prepplans' },
     { path: '/analytics', icon: <BarChart3 className="h-5 w-5" />, label: 'Analytics', permission: 'analytics' },
     { path: '/team-management', icon: <Users className="h-5 w-5" />, label: 'Team', permission: 'team' },
     { path: '/settings', icon: <Settings className="h-5 w-5" />, label: 'Settings', permission: 'dashboard' },

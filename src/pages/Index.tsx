@@ -3,18 +3,20 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { 
   BarChart3, 
   ChefHat, 
   ScrollText, 
   ShoppingCart, 
   Package, 
-  ArrowRight, 
   AlertTriangle, 
   Calendar, 
-  Clock,
   PlusCircle,
+  TrendingUp,
+  TrendingDown,
+  Utensils,
+  CheckCircle2,
+  DollarSign,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +30,6 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileContainer } from "@/components/layout/MobileContainer";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -38,11 +39,12 @@ const Index = () => {
   const { isMobile } = useDeviceDetection();
   const timeZone = "Asia/Kolkata";
 
+  // Fetch today's sales
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
     queryKey: ['todaySales'],
     queryFn: async () => {
       try {
-        const today = toZonedTime(new Date(), timeZone); // Updated from utcToZonedTime
+        const today = toZonedTime(new Date(), timeZone);
         today.setHours(0, 0, 0, 0);
         
         const { data, error } = await supabase
@@ -53,8 +55,8 @@ const Index = () => {
         if (error) throw error;
         
         return {
-          orders: data || [],
-          totalRevenue: data?.reduce((sum, order) => sum + (order.total || 0), 0) || 0
+          orders: (data || []) as any[],
+          totalRevenue: (data || []).reduce((sum: number, order: any) => sum + (order.total || 0), 0)
         };
       } catch (error: any) {
         toast({
@@ -66,6 +68,137 @@ const Index = () => {
       }
     }
   });
+
+  // Fetch yesterday's sales for comparison
+  const { data: yesterdaySales } = useQuery({
+    queryKey: ['yesterdaySales'],
+    queryFn: async () => {
+      try {
+        const yesterday = toZonedTime(new Date(), timeZone);
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        const today = toZonedTime(new Date(), timeZone);
+        today.setHours(0, 0, 0, 0);
+        
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .gte('timestamp', yesterday.toISOString())
+          .lt('timestamp', today.toISOString());
+        
+        if (error) throw error;
+        
+        return {
+          orders: (data || []) as any[],
+          totalRevenue: (data || []).reduce((sum: number, order: any) => sum + (order.total || 0), 0)
+        };
+      } catch (error: any) {
+        return { orders: [], totalRevenue: 0 };
+      }
+    }
+  });
+
+  // Fetch kitchen orders (pending/in_progress)
+  const { data: kitchenOrders } = useQuery({
+    queryKey: ['kitchenOrders'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .in('order_status', ['pending', 'in_progress'] as any)
+          .in('order_type', ['take_away', 'seating'] as any)
+          .order('timestamp', { ascending: true });
+        
+        if (error) throw error;
+        return (data || []) as any[];
+      } catch (error: any) {
+        return [];
+      }
+    }
+  });
+
+  // Fetch menu items for top sellers
+  const { data: menuItems } = useQuery({
+    queryKey: ['menuItems'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('menuitems')
+          .select('*');
+        if (error) throw error;
+        return data || [];
+      } catch (error: any) {
+        return [];
+      }
+    }
+  });
+
+  // Calculate top selling items
+  const topSellingItems = React.useMemo(() => {
+    if (!todaySales?.orders || !menuItems) return [];
+    
+    const itemCounts: Record<number, { count: number; revenue: number; name: string }> = {};
+    
+    todaySales.orders.forEach((order: any) => {
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item: any) => {
+          if (item.menuItemId) {
+            if (!itemCounts[item.menuItemId]) {
+              const menuItem = (menuItems as any[]).find((m: any) => m.id === item.menuItemId);
+              itemCounts[item.menuItemId] = {
+                count: 0,
+                revenue: 0,
+                name: menuItem?.name || 'Unknown'
+              };
+            }
+            itemCounts[item.menuItemId].count += item.quantity || 0;
+            itemCounts[item.menuItemId].revenue += (item.price || 0) * (item.quantity || 0);
+          }
+        });
+      }
+    });
+    
+    return Object.entries(itemCounts)
+      .map(([id, data]) => ({ id: parseInt(id), ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [todaySales?.orders, menuItems]);
+
+  // Calculate revenue change
+  const revenueChange = React.useMemo(() => {
+    if (!yesterdaySales?.totalRevenue || !todaySales?.totalRevenue) return null;
+    const change = todaySales.totalRevenue - yesterdaySales.totalRevenue;
+    const percentChange = yesterdaySales.totalRevenue > 0 
+      ? ((change / yesterdaySales.totalRevenue) * 100).toFixed(1)
+      : '0';
+    return { change, percentChange, isPositive: change >= 0 };
+  }, [todaySales?.totalRevenue, yesterdaySales?.totalRevenue]);
+
+  // Calculate order status breakdown
+  const orderStatusBreakdown = React.useMemo(() => {
+    if (!todaySales?.orders) return { pending: 0, in_progress: 0, ready: 0, completed: 0 };
+    
+    return todaySales.orders.reduce((acc: any, order: any) => {
+      const status = order.order_status || 'pending';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, { pending: 0, in_progress: 0, ready: 0, completed: 0 });
+  }, [todaySales?.orders]);
+
+  // Get recent orders
+  const recentOrders = React.useMemo(() => {
+    if (!todaySales?.orders) return [];
+    return [...todaySales.orders]
+      .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5);
+  }, [todaySales?.orders]);
+
+  // Calculate average order value
+  const averageOrderValue = React.useMemo(() => {
+    if (!todaySales?.orders || todaySales.orders.length === 0) return 0;
+    return todaySales.totalRevenue / todaySales.orders.length;
+  }, [todaySales]);
 
   const { data: lowStockIngredients, isLoading: ingredientsLoading, dataUpdatedAt: ingredientsUpdatedAt } = useQuery({
     queryKey: ['lowStockIngredients'],
@@ -105,7 +238,7 @@ const Index = () => {
         const { data, error } = await supabase
           .from('prepplans')
           .select('*')
-          .eq('date', tomorrowDateStr);
+          .eq('date', tomorrowDateStr as any);
         
         if (error) throw error;
         
@@ -184,14 +317,15 @@ const Index = () => {
             </div>
           )}
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {/* Key Metrics Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <Card 
             className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
             onClick={() => navigate('/order-history')}
           >
             <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-blue-50/50">
-              <CardTitle className="text-sm md:text-base font-medium text-blue-700">Today's Sales</CardTitle>
-              <ArrowRight className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
+              <CardTitle className="text-sm md:text-base font-medium text-blue-700">Today's Revenue</CardTitle>
+              <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
             </CardHeader>
             <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
               {salesLoading ? (
@@ -199,13 +333,36 @@ const Index = () => {
               ) : (
                 <>
                   <p className="text-2xl md:text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{todaySales?.orders?.length || 0} orders today</p>
-                  <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span className="truncate">Updated {salesUpdatedAt ? getTimeAgo(salesUpdatedAt) : "never"}</span>
-                  </div>
+                  {revenueChange && (
+                    <div className={`flex items-center gap-1 mt-1 text-xs ${revenueChange.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                      {revenueChange.isPositive ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      <span>{revenueChange.isPositive ? '+' : ''}₹{Math.abs(revenueChange.change).toFixed(2)} ({revenueChange.percentChange}%)</span>
+                      <span className="text-muted-foreground">vs yesterday</span>
+                    </div>
+                  )}
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{todaySales?.orders?.length || 0} orders • Avg ₹{averageOrderValue.toFixed(2)}</p>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
+            onClick={() => navigate('/kitchen-orders')}
+          >
+            <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-green-50/50">
+              <CardTitle className="text-sm md:text-base font-medium text-green-700">Kitchen Queue</CardTitle>
+              <Utensils className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+            </CardHeader>
+            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
+              <p className="text-2xl md:text-3xl font-bold text-green-600">{kitchenOrders?.length || 0}</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                {orderStatusBreakdown.pending || 0} pending • {orderStatusBreakdown.in_progress || 0} cooking
+              </p>
             </CardContent>
           </Card>
 
@@ -214,7 +371,7 @@ const Index = () => {
             onClick={() => navigate('/inventory')}
           >
             <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-orange-50/50">
-              <CardTitle className="text-sm md:text-base font-medium text-orange-700">Low Stock Alert</CardTitle>
+              <CardTitle className="text-sm md:text-base font-medium text-orange-700">Low Stock</CardTitle>
               <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-orange-500" />
             </CardHeader>
             <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
@@ -223,11 +380,13 @@ const Index = () => {
               ) : (
                 <div>
                   <p className="text-2xl md:text-3xl font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">ingredients need restocking</p>
-                  <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span className="truncate">Updated {ingredientsUpdatedAt ? getTimeAgo(ingredientsUpdatedAt) : "never"}</span>
-                  </div>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">items need restocking</p>
+                  {lowStockIngredients && lowStockIngredients.length > 0 && (
+                    <p className="text-xs text-orange-600 mt-1 truncate">
+                      {lowStockIngredients.slice(0, 2).map((ing: any) => ing.name).join(', ')}
+                      {lowStockIngredients.length > 2 && '...'}
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -238,7 +397,7 @@ const Index = () => {
             onClick={() => navigate('/prep-plans')}
           >
             <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-purple-50/50">
-              <CardTitle className="text-sm md:text-base font-medium text-purple-700">Tomorrow's Prep</CardTitle>
+              <CardTitle className="text-sm md:text-base font-medium text-purple-700">Prep Plan</CardTitle>
               <Calendar className="h-3 w-3 md:h-4 md:w-4 text-purple-500" />
             </CardHeader>
             <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
@@ -246,8 +405,8 @@ const Index = () => {
                 <p className="text-sm">Loading...</p>
               ) : prepPlan && prepPlan.length === 0 ? (
                 <div className="space-y-2">
-                  <p className="text-xs md:text-sm">No prep plan for tomorrow yet</p>
-                  <Button size="sm" onClick={() => navigate('/prep-plans')} className="flex items-center text-xs h-7">
+                  <p className="text-xs md:text-sm">No prep plan for tomorrow</p>
+                  <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate('/prep-plans'); }} className="flex items-center text-xs h-7">
                     <PlusCircle className="h-3 w-3 mr-1" />
                     Plan Now
                   </Button>
@@ -255,10 +414,92 @@ const Index = () => {
               ) : (
                 <div>
                   <p className="text-2xl md:text-3xl font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">items in tomorrow's prep plan</p>
-                  <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span className="truncate">Updated {prepUpdatedAt ? getTimeAgo(prepUpdatedAt) : "never"}</span>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">items for tomorrow</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Data-Driven Insights Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mt-4 md:mt-6">
+          {/* Top Selling Items */}
+          <Card className="rounded-lg md:rounded-xl shadow-sm bg-white/70 backdrop-blur-sm border-muted/20">
+            <CardHeader className="pb-2 pt-3 px-3 md:px-4 bg-indigo-50/50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm md:text-base font-medium text-indigo-700">Top Selling Items Today</CardTitle>
+                <BarChart3 className="h-4 w-4 text-indigo-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
+              {topSellingItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No sales data yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {topSellingItems.map((item, index) => (
+                    <div key={item.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-xs font-bold text-muted-foreground w-4">#{index + 1}</span>
+                        <span className="text-sm font-medium truncate">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="text-muted-foreground">{item.count} sold</span>
+                        <span className="font-semibold text-indigo-600">₹{item.revenue.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Order Status & Recent Orders */}
+          <Card className="rounded-lg md:rounded-xl shadow-sm bg-white/70 backdrop-blur-sm border-muted/20">
+            <CardHeader className="pb-2 pt-3 px-3 md:px-4 bg-blue-50/50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm md:text-base font-medium text-blue-700">Order Status</CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-blue-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="p-2 bg-yellow-50 rounded-md text-center">
+                  <p className="text-lg font-bold text-yellow-600">{orderStatusBreakdown.pending || 0}</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </div>
+                <div className="p-2 bg-blue-50 rounded-md text-center">
+                  <p className="text-lg font-bold text-blue-600">{orderStatusBreakdown.in_progress || 0}</p>
+                  <p className="text-xs text-muted-foreground">Cooking</p>
+                </div>
+                <div className="p-2 bg-green-50 rounded-md text-center">
+                  <p className="text-lg font-bold text-green-600">{orderStatusBreakdown.ready || 0}</p>
+                  <p className="text-xs text-muted-foreground">Ready</p>
+                </div>
+                <div className="p-2 bg-gray-50 rounded-md text-center">
+                  <p className="text-lg font-bold text-gray-600">{orderStatusBreakdown.completed || 0}</p>
+                  <p className="text-xs text-muted-foreground">Completed</p>
+                </div>
+              </div>
+              {recentOrders.length > 0 && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Recent Orders</p>
+                  <div className="space-y-1">
+                    {recentOrders.slice(0, 3).map((order: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {format(new Date(order.timestamp), 'HH:mm')}
+                        </span>
+                        <span className="font-medium">₹{order.total?.toFixed(2) || '0.00'}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs ${
+                          order.order_status === 'completed' ? 'bg-green-100 text-green-700' :
+                          order.order_status === 'ready' ? 'bg-blue-100 text-blue-700' :
+                          order.order_status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {order.order_status || 'pending'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -266,51 +507,23 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
           {modules.filter(m => m.title !== "Analytics & Reports").map((module) => (
             <Button
               key={module.title}
               variant="outline"
-              className={`h-auto p-3 md:p-4 lg:p-6 flex flex-col items-center justify-center gap-2 md:gap-3 text-center rounded-lg md:rounded-xl transition-all duration-200 hover:shadow-md bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 ${module.bgColor}`}
+              className={`h-auto p-3 md:p-4 flex flex-col items-center justify-center gap-2 text-center rounded-lg md:rounded-xl transition-all duration-200 hover:shadow-md bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 ${module.bgColor}`}
               onClick={() => navigate(module.path)}
             >
               <div className="h-6 w-6 md:h-8 md:w-8">{module.icon}</div>
               <div>
-                <h3 className="font-semibold text-xs md:text-sm lg:text-base">{module.title}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground hidden md:block">{module.description}</p>
+                <h3 className="font-semibold text-xs md:text-sm">{module.title}</h3>
+                <p className="text-xs text-muted-foreground hidden md:block mt-1">{module.description}</p>
               </div>
             </Button>
           ))}
         </div>
-
-        <Card 
-          className="rounded-lg md:rounded-xl shadow-sm overflow-hidden mt-4 md:mt-6 hover:shadow-md transition-all duration-200 bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 cursor-pointer"
-          onClick={() => navigate('/analytics')}
-        >
-          <CardHeader className="flex flex-row items-center justify-between pb-2 pt-3 px-3 md:px-4 bg-indigo-50/50">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-base md:text-lg lg:text-xl font-semibold text-indigo-700">Analytics & Reports</CardTitle>
-              <p className="text-xs md:text-sm text-muted-foreground mt-0.5 hidden md:block">
-                Comprehensive insights into your restaurant's performance
-              </p>
-            </div>
-            <BarChart3 className="h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-indigo-500 flex-shrink-0 ml-2" />
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 p-3 md:p-4 lg:p-6">
-            <div className="flex flex-col items-center p-2 md:p-3 lg:p-4 bg-indigo-50 rounded-md md:rounded-lg">
-              <h4 className="font-medium text-xs md:text-sm text-indigo-700">Sales Analytics</h4>
-              <p className="text-xs md:text-sm text-muted-foreground text-center mt-1 hidden md:block">Track revenue and order trends</p>
-            </div>
-            <div className="flex flex-col items-center p-2 md:p-3 lg:p-4 bg-indigo-50 rounded-md md:rounded-lg">
-              <h4 className="font-medium text-xs md:text-sm text-indigo-700">Inventory Reports</h4>
-              <p className="text-xs md:text-sm text-muted-foreground text-center mt-1 hidden md:block">Monitor stock levels and usage</p>
-            </div>
-            <div className="flex flex-col items-center p-2 md:p-3 lg:p-4 bg-indigo-50 rounded-md md:rounded-lg">
-              <h4 className="font-medium text-xs md:text-sm text-indigo-700">Performance Metrics</h4>
-              <p className="text-xs md:text-sm text-muted-foreground text-center mt-1 hidden md:block">Analyze kitchen efficiency</p>
-            </div>
-          </CardContent>
-        </Card>
 
         {!isMobile && (
           <div className="fixed bottom-6 right-6 z-10 flex flex-col gap-2">

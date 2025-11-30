@@ -34,10 +34,23 @@ const Auth = () => {
     }
   }, [inviteToken]);
 
-  // If already authenticated, redirect to home
+  // If already authenticated, redirect to home (use useEffect to avoid render issues)
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  // If already authenticated, show loading while redirecting
   if (user && !loading) {
-    navigate("/");
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   // Show loading while checking auth state

@@ -52,7 +52,7 @@ const queryClient = new QueryClient({
 // Define role-based permissions
 const ROLE_PERMISSIONS = {
   'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team', 'kitchen'],
-  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans', 'kitchen'],
+  'Kitchen Staff': ['pos', 'inventory', 'recipes', 'prepplans', 'kitchen'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
   'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'kitchen']
 };
@@ -66,13 +66,22 @@ const ProtectedRoute = ({
   requiredPermission: string
 }) => {
   const { user, loading, signOut } = useAuth();
-  const { data: teamMember, loading: teamLoading } = useCurrentTeamMember();
+  const { data: teamMember, isLoading: teamLoading } = useCurrentTeamMember();
   const navigate = useNavigate();
   
+  // Show loading while checking auth and team member
   if (loading || teamLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
   
+  // Redirect to auth if not logged in
   if (!user) {
     return <Navigate to="/auth" replace />;
   }

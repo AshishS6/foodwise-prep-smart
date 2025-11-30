@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils';
 
 const ROLE_PERMISSIONS = {
   'Admin': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'team', 'kitchen'],
-  'Kitchen Staff': ['dashboard', 'inventory', 'recipes', 'prepplans', 'kitchen'],
+  'Kitchen Staff': ['pos', 'inventory', 'recipes', 'prepplans', 'kitchen'],
   'Cashier': ['dashboard', 'pos', 'orderhistory'],
   'Manager': ['dashboard', 'pos', 'inventory', 'recipes', 'prepplans', 'orderhistory', 'analytics', 'reports', 'kitchen']
 };
@@ -61,7 +61,7 @@ const menuItems: MenuItem[] = [
 export const ResponsiveSidebarContent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: teamMember, loading: teamMemberLoading } = useCurrentTeamMember();
+  const { data: teamMember, isLoading: teamMemberLoading } = useCurrentTeamMember();
   const { isMobile, touchSupported } = useDeviceDetection();
   const { setOpenMobile } = useSidebar();
   const sidebarRef = useRef<HTMLDivElement>(null);
