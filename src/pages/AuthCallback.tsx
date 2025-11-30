@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getDefaultRoute } from '@/utils/getDefaultRoute';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -50,17 +51,32 @@ const AuthCallback: React.FC = () => {
 
             if (data.user) {
               setStatus('success');
-              setMessage('Email verified successfully! Redirecting to dashboard...');
+              setMessage('Email verified successfully! Redirecting...');
               
               toast({
                 title: "Email Verified!",
                 description: "Your email has been successfully verified.",
               });
 
-              // Redirect to dashboard after a short delay
-              setTimeout(() => {
-                navigate('/', { replace: true });
-              }, 2000);
+              // Fetch team member to determine default route
+              try {
+                const { data: teamMemberData } = await supabase
+                  .from('team_members')
+                  .select('*')
+                  .eq('user_id', data.user.id as any)
+                  .maybeSingle();
+
+                // Redirect to role-based default route after a short delay
+                setTimeout(() => {
+                  const defaultRoute = getDefaultRoute((teamMemberData as any) || null);
+                  navigate(defaultRoute, { replace: true });
+                }, 2000);
+              } catch {
+                // If error fetching team member, default to dashboard
+                setTimeout(() => {
+                  navigate('/', { replace: true });
+                }, 2000);
+              }
             } else {
               throw new Error('No user data received');
             }

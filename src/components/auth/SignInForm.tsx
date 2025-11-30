@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDefaultRoute } from "@/utils/getDefaultRoute";
+import { supabase } from "@/integrations/supabase/client";
 
 export const SignInForm = () => {
   const navigate = useNavigate();
@@ -39,12 +41,31 @@ export const SignInForm = () => {
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        navigate("/");
+        // Fetch team member to determine default route
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          try {
+            const { data: teamMemberData } = await supabase
+              .from('team_members')
+              .select('*')
+              .eq('user_id', currentUser.id as any)
+              .maybeSingle();
+            
+            const defaultRoute = getDefaultRoute((teamMemberData as any) || null);
+            navigate(defaultRoute);
+          } catch {
+            // If error fetching team member, default to dashboard
+            navigate("/");
+          }
+        } else {
+          // Fallback to dashboard if user not found
+          navigate("/");
+        }
       }
     } catch (error: unknown) {
       toast({
         title: "Sign In Failed",
-        description: error.message || "An unexpected error occurred",
+        description: (error instanceof Error ? error.message : "An unexpected error occurred"),
         variant: "destructive",
       });
     } finally {

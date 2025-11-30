@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, BarChart3, Users, Settings, Utensils, ScrollText, ChefHat } from 'lucide-react';
+import { Home, ShoppingCart, Package, BarChart3, Utensils, ChefHat } from 'lucide-react';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { useCurrentTeamMember } from '@/hooks/useTeamMembers';
 import { TOUCH_TARGETS, LAYOUT_DIMENSIONS, ANIMATION_DURATIONS } from '@/constants/mobile';
@@ -40,11 +40,8 @@ export const MobileBottomNav: React.FC = () => {
     { path: '/pos', icon: <ShoppingCart className="h-5 w-5" />, label: 'POS', permission: 'pos' },
     { path: '/kitchen-orders', icon: <Utensils className="h-5 w-5" />, label: 'Kitchen', permission: 'kitchen' },
     { path: '/inventory', icon: <Package className="h-5 w-5" />, label: 'Inventory', permission: 'inventory' },
-    { path: '/recipes', icon: <ScrollText className="h-5 w-5" />, label: 'Recipes', permission: 'recipes' },
-    { path: '/prep-plans', icon: <ChefHat className="h-5 w-5" />, label: 'Prep', permission: 'prepplans' },
+    { path: '/prep', icon: <ChefHat className="h-5 w-5" />, label: 'Prep', permission: 'recipes' }, // Consolidated Recipes and Prep Plans
     { path: '/analytics', icon: <BarChart3 className="h-5 w-5" />, label: 'Analytics', permission: 'analytics' },
-    { path: '/team-management', icon: <Users className="h-5 w-5" />, label: 'Team', permission: 'team' },
-    { path: '/settings', icon: <Settings className="h-5 w-5" />, label: 'Settings', permission: 'dashboard' },
   ];
 
   // Filter items based on user permissions
@@ -67,6 +64,10 @@ export const MobileBottomNav: React.FC = () => {
   const isActive = (path: string) => {
     if (path === '/') {
       return location.pathname === '/';
+    }
+    // Special handling for /prep to match both /recipes and /prep-plans
+    if (path === '/prep') {
+      return location.pathname.startsWith('/prep') || location.pathname.startsWith('/recipes');
     }
     return location.pathname.startsWith(path);
   };

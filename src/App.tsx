@@ -18,6 +18,7 @@ const POS = lazy(() => import("./pages/POS"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const Recipes = lazy(() => import("./pages/Recipes"));
 const PrepPlans = lazy(() => import("./pages/PrepPlans"));
+const PrepSection = lazy(() => import("./pages/PrepSection"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OrderHistory = lazy(() => import("./pages/OrderHistory"));
@@ -208,6 +209,16 @@ const AppContent = () => {
               } 
             />
             <Route 
+              path="/prep" 
+              element={
+                <ProtectedRoute requiredPermission="recipes">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PrepSection />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/recipes" 
               element={
                 <ProtectedRoute requiredPermission="recipes">
@@ -364,6 +375,16 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="inventory">
                   <Suspense fallback={<LoadingFallback />}>
                     <Inventory />
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/prep" 
+              element={
+                <ProtectedRoute requiredPermission="recipes">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <PrepSection />
                   </Suspense>
                 </ProtectedRoute>
               } 

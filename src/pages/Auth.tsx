@@ -18,10 +18,13 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
+import { useCurrentTeamMember } from "@/hooks/useTeamMembers";
+import { getDefaultRoute } from "@/utils/getDefaultRoute";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { data: teamMember } = useCurrentTeamMember();
   const [searchParams] = useSearchParams();
   const [defaultTab, setDefaultTab] = useState<"signin" | "signup">("signin");
   const inviteToken = searchParams.get("token");
@@ -34,12 +37,13 @@ const Auth = () => {
     }
   }, [inviteToken]);
 
-  // If already authenticated, redirect to home (use useEffect to avoid render issues)
+  // If already authenticated, redirect to role-based default route (use useEffect to avoid render issues)
   useEffect(() => {
     if (user && !loading) {
-      navigate("/", { replace: true });
+      const defaultRoute = getDefaultRoute(teamMember);
+      navigate(defaultRoute, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, teamMember, navigate]);
 
   // If already authenticated, show loading while redirecting
   if (user && !loading) {

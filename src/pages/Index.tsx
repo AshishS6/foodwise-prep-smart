@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +17,8 @@ import {
   Utensils,
   CheckCircle2,
   DollarSign,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +40,8 @@ const Index = () => {
   const { data: teamMember } = useCurrentTeamMember();
   const { isMobile } = useDeviceDetection();
   const timeZone = "Asia/Kolkata";
+  const [lowStockExpanded, setLowStockExpanded] = useState(false);
+  const [prepPlanExpanded, setPrepPlanExpanded] = useState(false);
 
   // Fetch today's sales
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
@@ -318,21 +322,21 @@ const Index = () => {
           )}
           
           {/* Key Metrics Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${lowStockExpanded || prepPlanExpanded ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-2 md:gap-3 lg:gap-4 transition-all duration-300`}>
           <Card 
             className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
             onClick={() => navigate('/order-history')}
           >
-            <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-blue-50/50">
-              <CardTitle className="text-sm md:text-base font-medium text-blue-700">Today's Revenue</CardTitle>
+            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-blue-50/50">
+              <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-blue-700">Today's Revenue</CardTitle>
               <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
             </CardHeader>
-            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
+            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
               {salesLoading ? (
                 <p className="text-sm">Loading...</p>
               ) : (
                 <>
-                  <p className="text-2xl md:text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
+                  <p className="text-xl md:text-2xl lg:text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
                   {revenueChange && (
                     <div className={`flex items-center gap-1 mt-1 text-xs ${revenueChange.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                       {revenueChange.isPositive ? (
@@ -354,100 +358,174 @@ const Index = () => {
             className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
             onClick={() => navigate('/kitchen-orders')}
           >
-            <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-green-50/50">
-              <CardTitle className="text-sm md:text-base font-medium text-green-700">Kitchen Queue</CardTitle>
+            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-green-50/50">
+              <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-green-700">Kitchen Queue</CardTitle>
               <Utensils className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
             </CardHeader>
-            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
-              <p className="text-2xl md:text-3xl font-bold text-green-600">{kitchenOrders?.length || 0}</p>
+            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
+              <p className="text-xl md:text-2xl lg:text-3xl font-bold text-green-600">{kitchenOrders?.length || 0}</p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
                 {orderStatusBreakdown.pending || 0} pending • {orderStatusBreakdown.in_progress || 0} cooking
               </p>
             </CardContent>
           </Card>
 
-          <Card 
-            className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-            onClick={() => navigate('/inventory')}
-          >
-            <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-orange-50/50">
-              <CardTitle className="text-sm md:text-base font-medium text-orange-700">Low Stock</CardTitle>
-              <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
-              {ingredientsLoading ? (
-                <p className="text-sm">Loading...</p>
-              ) : (
-                <div>
-                  <p className="text-2xl md:text-3xl font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">items need restocking</p>
-                  {lowStockIngredients && lowStockIngredients.length > 0 && (
-                    <p className="text-xs text-orange-600 mt-1 truncate">
-                      {lowStockIngredients.slice(0, 2).map((ing: any) => ing.name).join(', ')}
-                      {lowStockIngredients.length > 2 && '...'}
-                    </p>
+          {(!isMobile || lowStockExpanded) && (
+            <Card 
+              className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
+              onClick={() => navigate('/inventory')}
+            >
+              <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-orange-50/50">
+                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-orange-700">Low Stock</CardTitle>
+                <div className="flex items-center gap-1">
+                  {isMobile && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLowStockExpanded(false);
+                      }}
+                      className="p-1"
+                    >
+                      <ChevronUp className="h-3 w-3 text-orange-500" />
+                    </button>
                   )}
+                  <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-orange-500" />
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
+                {ingredientsLoading ? (
+                  <p className="text-xs md:text-sm">Loading...</p>
+                ) : (
+                  <div>
+                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1">items need restocking</p>
+                    {lowStockIngredients && lowStockIngredients.length > 0 && (
+                      <p className="text-xs text-orange-600 mt-1 truncate">
+                        {lowStockIngredients.slice(0, 2).map((ing: any) => ing.name).join(', ')}
+                        {lowStockIngredients.length > 2 && '...'}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {isMobile && !lowStockExpanded && (
+            <Card 
+              className="rounded-lg shadow-sm cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLowStockExpanded(true);
+              }}
+            >
+              <CardHeader className="pb-2 pt-2 px-2 flex flex-row items-center justify-between bg-orange-50/50">
+                <CardTitle className="text-xs font-medium text-orange-700">Low Stock</CardTitle>
+                <ChevronDown className="h-3 w-3 text-orange-500" />
+              </CardHeader>
+              <CardContent className="pt-2 px-2 pb-2">
+                <p className="text-lg font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card 
-            className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-            onClick={() => navigate('/prep-plans')}
-          >
-            <CardHeader className="pb-2 pt-3 px-3 md:px-4 flex flex-row items-center justify-between bg-purple-50/50">
-              <CardTitle className="text-sm md:text-base font-medium text-purple-700">Prep Plan</CardTitle>
-              <Calendar className="h-3 w-3 md:h-4 md:w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
-              {prepLoading ? (
-                <p className="text-sm">Loading...</p>
-              ) : prepPlan && prepPlan.length === 0 ? (
-                <div className="space-y-2">
-                  <p className="text-xs md:text-sm">No prep plan for tomorrow</p>
-                  <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate('/prep-plans'); }} className="flex items-center text-xs h-7">
-                    <PlusCircle className="h-3 w-3 mr-1" />
-                    Plan Now
-                  </Button>
+          {(!isMobile || prepPlanExpanded) && (
+            <Card 
+              className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
+              onClick={() => navigate('/prep-plans')}
+            >
+              <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-purple-50/50">
+                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-purple-700">Prep Plan</CardTitle>
+                <div className="flex items-center gap-1">
+                  {isMobile && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPrepPlanExpanded(false);
+                      }}
+                      className="p-1"
+                    >
+                      <ChevronUp className="h-3 w-3 text-purple-500" />
+                    </button>
+                  )}
+                  <Calendar className="h-3 w-3 md:h-4 md:w-4 text-purple-500" />
                 </div>
-              ) : (
-                <div>
-                  <p className="text-2xl md:text-3xl font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">items for tomorrow</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
+                {prepLoading ? (
+                  <p className="text-xs md:text-sm">Loading...</p>
+                ) : prepPlan && prepPlan.length === 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs md:text-sm">No prep plan for tomorrow</p>
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate('/prep-plans'); }} className="flex items-center text-xs h-6 md:h-7">
+                      <PlusCircle className="h-3 w-3 mr-1" />
+                      Plan Now
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1">items for tomorrow</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {isMobile && !prepPlanExpanded && (
+            <Card 
+              className="rounded-lg shadow-sm cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPrepPlanExpanded(true);
+              }}
+            >
+              <CardHeader className="pb-2 pt-2 px-2 flex flex-row items-center justify-between bg-purple-50/50">
+                <CardTitle className="text-xs font-medium text-purple-700">Prep Plan</CardTitle>
+                <ChevronDown className="h-3 w-3 text-purple-500" />
+              </CardHeader>
+              <CardContent className="pt-2 px-2 pb-2">
+                <p className="text-lg font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Data-Driven Insights Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mt-4 md:mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 lg:gap-4 mt-3 md:mt-4 lg:mt-6">
           {/* Top Selling Items */}
           <Card className="rounded-lg md:rounded-xl shadow-sm bg-white/70 backdrop-blur-sm border-muted/20">
-            <CardHeader className="pb-2 pt-3 px-3 md:px-4 bg-indigo-50/50">
+            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 bg-indigo-50/50">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm md:text-base font-medium text-indigo-700">Top Selling Items Today</CardTitle>
-                <BarChart3 className="h-4 w-4 text-indigo-500" />
+                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-indigo-700">Top Selling Items Today</CardTitle>
+                <BarChart3 className="h-3 w-3 md:h-4 md:w-4 text-indigo-500" />
               </div>
             </CardHeader>
-            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
+            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
               {topSellingItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No sales data yet</p>
+                <p className="text-xs md:text-sm text-muted-foreground text-center py-3 md:py-4">No sales data yet</p>
               ) : (
-                <div className="space-y-2">
-                  {topSellingItems.map((item, index) => (
-                    <div key={item.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-xs font-bold text-muted-foreground w-4">#{index + 1}</span>
-                        <span className="text-sm font-medium truncate">{item.name}</span>
+                <div className="space-y-1 md:space-y-2">
+                  {topSellingItems.slice(0, 3).map((item, index) => (
+                    <div key={item.id} className="flex items-center justify-between p-1.5 md:p-2 bg-muted/30 rounded-md">
+                      <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
+                        <span className="text-xs font-bold text-muted-foreground w-3 md:w-4">#{index + 1}</span>
+                        <span className="text-xs md:text-sm font-medium truncate">{item.name}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-2 md:gap-3 text-xs">
                         <span className="text-muted-foreground">{item.count} sold</span>
                         <span className="font-semibold text-indigo-600">₹{item.revenue.toFixed(2)}</span>
                       </div>
                     </div>
                   ))}
+                  {topSellingItems.length > 3 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/analytics')}
+                      className="w-full mt-2 text-xs h-7"
+                    >
+                      View All ({topSellingItems.length} items)
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -455,14 +533,14 @@ const Index = () => {
 
           {/* Order Status & Recent Orders */}
           <Card className="rounded-lg md:rounded-xl shadow-sm bg-white/70 backdrop-blur-sm border-muted/20">
-            <CardHeader className="pb-2 pt-3 px-3 md:px-4 bg-blue-50/50">
+            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 bg-blue-50/50">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm md:text-base font-medium text-blue-700">Order Status</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-blue-700">Order Status</CardTitle>
+                <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
               </div>
             </CardHeader>
-            <CardContent className="pt-3 px-3 md:px-4 pb-3 md:pb-4">
-              <div className="grid grid-cols-2 gap-2 mb-3">
+            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
+              <div className="grid grid-cols-2 gap-1.5 md:gap-2 mb-2 md:mb-3">
                 <div className="p-2 bg-yellow-50 rounded-md text-center">
                   <p className="text-lg font-bold text-yellow-600">{orderStatusBreakdown.pending || 0}</p>
                   <p className="text-xs text-muted-foreground">Pending</p>

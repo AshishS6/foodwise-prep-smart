@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, Utensils, CheckCircle2, ChefHat, Play } from "lucide-react";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -15,6 +16,7 @@ import { OrderStatus } from "@/types/supabase";
 const KitchenOrders = () => {
   const navigate = useNavigate();
   const { session, userRole } = useAuthStore();
+  const { isMobile } = useDeviceDetection();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -191,84 +193,85 @@ const KitchenOrders = () => {
         </CardHeader>
         <CardContent>
           {orders && orders.length > 0 ? (
-            <div className="space-y-4">
+            <div className={isMobile ? "space-y-2" : "space-y-4"}>
               {orders.map((order) => (
                 <Card 
                   key={order.id}
                   className="hover:bg-accent/50 transition-colors"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className="font-bold text-lg">Order #{order.id}</span>
-                          {getOrderTypeBadge(order.order_type)}
-                          {getStatusBadge(order.order_status || 'pending')}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            <span>{formatTime(order.timestamp)}</span>
+                  <CardContent className={isMobile ? "p-3" : "p-4"}>
+                    <div className="flex items-start justify-between gap-2 md:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2 flex-wrap">
+                          <span className={`font-bold ${isMobile ? 'text-base' : 'text-lg'}`}>Order #{order.id}</span>
+                          <div className="flex items-center gap-1.5">
+                            {getOrderTypeBadge(order.order_type)}
+                            {getStatusBadge(order.order_status || 'pending')}
                           </div>
-                          <span>{formatDate(order.timestamp)}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 md:gap-4 ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 md:mb-3`}>
+                          <div className="flex items-center gap-1">
+                            <Clock className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
+                            <span>{formatTime(order.timestamp)} • {formatDate(order.timestamp)}</span>
+                          </div>
                           <span className="text-xs">{getTimeAgo(order.timestamp)}</span>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-0.5 md:space-y-1">
                           {Array.isArray(order.items) ? (
-                            order.items.slice(0, 3).map((item: any, index: number) => (
-                              <div key={index} className="text-sm">
+                            order.items.slice(0, isMobile ? 2 : 3).map((item: any, index: number) => (
+                              <div key={index} className={isMobile ? "text-xs" : "text-sm"}>
                                 <span className="font-medium">{item.quantity}x</span> {item.name}
                                 {item.isHalf && <span className="text-muted-foreground"> (Half)</span>}
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-muted-foreground">No items</p>
+                            <p className={`${isMobile ? "text-xs" : "text-sm"} text-muted-foreground`}>No items</p>
                           )}
-                          {Array.isArray(order.items) && order.items.length > 3 && (
+                          {Array.isArray(order.items) && order.items.length > (isMobile ? 2 : 3) && (
                             <p className="text-xs text-muted-foreground">
-                              +{order.items.length - 3} more item{order.items.length - 3 > 1 ? 's' : ''}
+                              +{order.items.length - (isMobile ? 2 : 3)} more item{order.items.length - (isMobile ? 2 : 3) > 1 ? 's' : ''}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="text-right ml-4">
-                        <p className="font-bold text-lg mb-3">₹{order.total.toFixed(2)}</p>
-                        <div className="flex flex-col gap-2">
+                      <div className={`text-right ${isMobile ? 'ml-2' : 'ml-4'} shrink-0`}>
+                        <p className={`font-bold ${isMobile ? 'text-base mb-2' : 'text-lg mb-3'}`}>₹{order.total.toFixed(2)}</p>
+                        <div className={`flex flex-col ${isMobile ? 'gap-1.5' : 'gap-2'}`}>
                           {order.order_status === 'pending' && (
                             <Button
-                              size="sm"
+                              size={isMobile ? "sm" : "sm"}
                               variant="default"
                               onClick={(e) => handleStatusUpdate(order.id, 'in_progress', e)}
                               disabled={updateOrderStatus.isPending}
-                              className="w-full"
+                              className={isMobile ? "w-full text-xs h-8" : "w-full"}
                             >
-                              <Play className="h-4 w-4 mr-1" />
-                              Start Cooking
+                              <Play className={isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-1"} />
+                              {isMobile ? "Start" : "Start Cooking"}
                             </Button>
                           )}
                           {order.order_status === 'in_progress' && (
                             <Button
-                              size="sm"
+                              size={isMobile ? "sm" : "sm"}
                               variant="default"
                               onClick={(e) => handleStatusUpdate(order.id, 'ready', e)}
                               disabled={updateOrderStatus.isPending}
-                              className="w-full bg-green-600 hover:bg-green-700"
+                              className={isMobile ? "w-full text-xs h-8 bg-green-600 hover:bg-green-700" : "w-full bg-green-600 hover:bg-green-700"}
                             >
-                              <CheckCircle2 className="h-4 w-4 mr-1" />
-                              Mark as Ready
+                              <CheckCircle2 className={isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-1"} />
+                              {isMobile ? "Ready" : "Mark as Ready"}
                             </Button>
                           )}
                           <Button
-                            size="sm"
+                            size={isMobile ? "sm" : "sm"}
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedOrder(order);
                               setDialogOpen(true);
                             }}
-                            className="w-full"
+                            className={isMobile ? "w-full text-xs h-8" : "w-full"}
                           >
-                            View Details
+                            {isMobile ? "Details" : "View Details"}
                           </Button>
                         </div>
                       </div>

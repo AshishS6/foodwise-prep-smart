@@ -21,7 +21,8 @@ import {
   LogOut, 
   Settings, 
   Shield,
-  ChevronDown
+  ChevronDown,
+  Users
 } from 'lucide-react';
 
 export const UserMenu: React.FC = () => {
@@ -80,6 +81,11 @@ export const UserMenu: React.FC = () => {
     return teamMember?.role || 'Guest';
   };
 
+  const hasTeamAccess = () => {
+    const role = getUserRole();
+    return role === 'Admin' || role === 'Manager';
+  };
+
   if (isMobile) {
     return (
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -129,6 +135,21 @@ export const UserMenu: React.FC = () => {
               <User className="mr-3 h-5 w-5" />
               <span>Profile</span>
             </Button>
+            
+            {hasTeamAccess() && (
+              <Button
+                variant="ghost"
+                className="w-full justify-start min-h-[44px] text-base"
+                style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}
+                onClick={() => {
+                  navigate('/team-management');
+                  setSheetOpen(false);
+                }}
+              >
+                <Users className="mr-3 h-5 w-5" />
+                <span>Team Management</span>
+              </Button>
+            )}
             
             <Button
               variant="ghost"
@@ -200,6 +221,13 @@ export const UserMenu: React.FC = () => {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
+        
+        {hasTeamAccess() && (
+          <DropdownMenuItem onClick={() => navigate('/team-management')} className="cursor-pointer">
+            <Users className="mr-2 h-4 w-4" />
+            <span>Team Management</span>
+          </DropdownMenuItem>
+        )}
         
         <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
           <Settings className="mr-2 h-4 w-4" />
