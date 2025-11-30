@@ -98,7 +98,7 @@ export function TeamManagement() {
 
     setIsSubmitting(true);
     try {
-      // Check if user already exists
+      // Check if user already exists as team member
       const { data: existingMember } = await supabase
         .from('team_members')
         .select('id')
@@ -109,33 +109,62 @@ export function TeamManagement() {
         throw new Error('User is already a team member');
       }
 
-      // For now, directly create the team member
-      // In production, you'd send an invitation email first
-      const { data, error } = await supabase
-        .from('team_members')
-        .insert([
-          {
-            user_id: crypto.randomUUID(), // Temporary ID, will be updated when user signs up
-            email: email,
-            role: role,
-            name: email.split('@')[0]
-          }
-        ])
-        .select()
+      // Check if there's a pending invitation
+      const { data: pendingInvite } = await supabase
+        .from('invitations')
+        .select('id, created_at, expires_at')
+        .eq('email', email)
+        .is('accepted_at', null)
         .single();
 
-      if (error) throw error;
+      if (pendingInvite) {
+        const expiresAt = new Date(pendingInvite.expires_at);
+        if (expiresAt > new Date()) {
+          throw new Error('User already has a pending invitation');
+        }
+      }
+
+      // Create invitation using RPC function (bypasses RLS)
+      const { data: invitationData, error: inviteError } = await supabase
+        .rpc('create_invitation', {
+          invite_email: email,
+          invite_role: role
+        });
+
+      if (inviteError) throw inviteError;
       
-      toast({
-        title: "Team member added",
-        description: `${email} has been added as ${role}. They can now sign up and access the system.`,
-      });
+      // RPC returns an array, get the first item
+      const invitation = invitationData && invitationData.length > 0 ? invitationData[0] : null;
+      
+      if (!invitation) {
+        throw new Error('Failed to create invitation');
+      }
+      
+      // Generate invite link
+      const baseUrl = window.location.origin;
+      const inviteLink = `${baseUrl}/auth?token=${invitation.token}&email=${encodeURIComponent(email)}`;
+      
+      // Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(inviteLink);
+        toast({
+          title: "Invitation created!",
+          description: `Invite link copied to clipboard. Send it to ${email} via email or SMS.`,
+        });
+      } catch (clipboardError) {
+        // Fallback: show the link in a toast
+        toast({
+          title: "Invitation created!",
+          description: `Invite link: ${inviteLink}`,
+          duration: 10000,
+        });
+      }
       
       setEmail("");
       fetchTeamMembers(); // Refresh the list
     } catch (error: any) {
       toast({
-        title: "Failed to add team member",
+        title: "Failed to create invitation",
         description: error.message,
         variant: "destructive",
       });

@@ -1,5 +1,6 @@
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -21,6 +22,17 @@ import { SignUpForm } from "@/components/auth/SignUpForm";
 const Auth = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [defaultTab, setDefaultTab] = useState<"signin" | "signup">("signin");
+  const inviteToken = searchParams.get("token");
+  const inviteEmail = searchParams.get("email");
+
+  // Check for invite token and switch to signup tab
+  useEffect(() => {
+    if (inviteToken) {
+      setDefaultTab("signup");
+    }
+  }, [inviteToken]);
 
   // If already authenticated, redirect to home
   if (user && !loading) {
@@ -41,13 +53,15 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Restaurant Management</CardTitle>
+          <CardTitle className="text-2xl text-center">Payasakkada</CardTitle>
           <CardDescription className="text-center">
-            Sign in or create an account to continue
+            {inviteToken 
+              ? "Complete your account setup to join the team"
+              : "Sign in or create an account to continue"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs defaultValue={defaultTab} value={defaultTab} onValueChange={(v) => setDefaultTab(v as "signin" | "signup")} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -56,7 +70,7 @@ const Auth = () => {
               <SignInForm />
             </TabsContent>
             <TabsContent value="signup">
-              <SignUpForm />
+              <SignUpForm inviteToken={inviteToken || undefined} inviteEmail={inviteEmail || undefined} />
             </TabsContent>
           </Tabs>
         </CardContent>

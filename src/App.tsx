@@ -159,14 +159,15 @@ const AppContent = () => {
   // Hide bottom nav on auth pages
   const shouldShowBottomNav = showBottomNav && isMobile && !location.pathname.startsWith('/auth');
 
+  // Don't show sidebar on auth pages
+  const isAuthPage = location.pathname.startsWith('/auth');
+  
   return (
     <>
-      {!isMobile && (
+      {!isMobile && !isAuthPage && (
         <ResponsiveSidebar>
           <Routes>
             <Route path="/test" element={<Test />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route 
               path="/" 
               element={
@@ -319,6 +320,12 @@ const AppContent = () => {
             } />
           </Routes>
         </ResponsiveSidebar>
+      )}
+      {!isMobile && isAuthPage && (
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+        </Routes>
       )}
       {isMobile && (
         <Routes>
