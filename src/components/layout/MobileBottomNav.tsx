@@ -39,8 +39,9 @@ export const MobileBottomNav: React.FC = () => {
     { path: '/', icon: <Home className="h-5 w-5" />, label: 'Home', permission: 'dashboard' },
     { path: '/pos', icon: <ShoppingCart className="h-5 w-5" />, label: 'POS', permission: 'pos' },
     { path: '/kitchen-orders', icon: <Utensils className="h-5 w-5" />, label: 'Kitchen', permission: 'kitchen' },
-    { path: '/inventory', icon: <Package className="h-5 w-5" />, label: 'Inventory', permission: 'inventory' },
-    { path: '/prep', icon: <ChefHat className="h-5 w-5" />, label: 'Prep', permission: 'recipes' }, // Consolidated Recipes and Prep Plans
+    // Temporarily hidden: Inventory and Prep pages
+    // { path: '/inventory', icon: <Package className="h-5 w-5" />, label: 'Inventory', permission: 'inventory' },
+    // { path: '/prep', icon: <ChefHat className="h-5 w-5" />, label: 'Prep', permission: 'recipes' },
     { path: '/analytics', icon: <BarChart3 className="h-5 w-5" />, label: 'Analytics', permission: 'analytics' },
   ];
 

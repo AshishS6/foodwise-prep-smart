@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,19 +11,25 @@ import { useAuthStore } from "@/stores/authStore";
 import { format, subDays } from "date-fns";
 import * as ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import { StatsCard } from "@/components/analytics/StatsCard";
-import { PopularItemsChart } from "@/components/analytics/PopularItemsChart";
-import { SalesTrendChart } from "@/components/analytics/SalesTrendChart";
 import { ItemSalesAnalysis } from "@/components/analytics/ItemSalesAnalysis";
 import { LowStockTable } from "@/components/analytics/LowStockTable";
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A259FF', '#FF6B6B'];
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TrendingUp, Calendar } from "lucide-react";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
+import { MobileHeader } from "@/components/layout/MobileHeader";
+import { MobileContainer } from "@/components/layout/MobileContainer";
+import { Header } from "@/components/layout/Header";
 
 export default function Analytics() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { session, userRole } = useAuthStore();
+  const { isMobile } = useDeviceDetection();
   const [timeRange, setTimeRange] = useState("week");
+  const [itemSalesExpanded, setItemSalesExpanded] = useState(true);
+  const [lowStockExpanded, setLowStockExpanded] = useState(false);
+  const [popularItemsExpanded, setPopularItemsExpanded] = useState(true);
+  const [salesTrendExpanded, setSalesTrendExpanded] = useState(true);
   
   useEffect(() => {
     if (!session) {
@@ -321,12 +328,6 @@ export default function Analytics() {
     }
   };
 
-  const exportToPDF = () => {
-    toast({
-      title: "PDF Export",
-      description: "PDF export is not implemented yet. Please use Excel export.",
-    });
-  };
 
   const isLoading = ordersLoading || menuItemsLoading || lowStockLoading;
 
@@ -335,55 +336,74 @@ export default function Analytics() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-          <h1 className="text-2xl font-bold">Sales Analytics</h1>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={exportToExcel}
-            disabled={isLoading || !orders || orders.length === 0}
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-1" />
-            Export Excel
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={exportToPDF}
-            disabled={isLoading || !orders || orders.length === 0}
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            Export PDF
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background">
+      {isMobile ? (
+        <MobileHeader 
+          title="Sales Analytics" 
+          actions={
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={exportToExcel}
+              disabled={isLoading || !orders || orders.length === 0}
+              className="bg-blue-50 hover:bg-blue-100"
+            >
+              <FileSpreadsheet className="h-5 w-5" />
+            </Button>
+          }
+        />
+      ) : (
+        <Header />
+      )}
+
+      <MobileContainer className="md:container md:mx-auto md:p-4 md:p-6">
+        {!isMobile && (
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <h1 className="text-2xl font-bold">Sales Analytics</h1>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportToExcel}
+              disabled={isLoading || !orders || orders.length === 0}
+              className="bg-blue-50 hover:bg-blue-100 border-blue-200"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+          </div>
+        )}
       
+      {/* Time Range Tabs - More Visual */}
       <div className="mb-6">
         <Tabs defaultValue="week" value={timeRange} onValueChange={setTimeRange}>
-          <TabsList>
-            <TabsTrigger value="day">Today</TabsTrigger>
-            <TabsTrigger value="week">Last 7 Days</TabsTrigger>
-            <TabsTrigger value="month">Last 30 Days</TabsTrigger>
+          <TabsList className="bg-muted">
+            <TabsTrigger value="day" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              Today
+            </TabsTrigger>
+            <TabsTrigger value="week" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              Last 7 Days
+            </TabsTrigger>
+            <TabsTrigger value="month" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              Last 30 Days
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
       
       {isLoading ? (
         <div className="flex justify-center p-8">
-          <p>Loading analytics data...</p>
+          <p className="text-muted-foreground">Loading analytics data...</p>
         </div>
       ) : orders && orders.length === 0 ? (
         <div className="text-center py-10">
@@ -391,44 +411,223 @@ export default function Analytics() {
           <p className="text-muted-foreground mb-6">
             There are no orders for the selected time period.
           </p>
-          <Button onClick={() => navigate('/pos')}>Create New Order</Button>
+          <Button onClick={() => navigate('/pos')} className="bg-blue-500 hover:bg-blue-600">
+            Create New Order
+          </Button>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <StatsCard
-              title="Total Revenue"
-              value={`₹${totalRevenue.toFixed(2)}`}
-              subtitle={timeRange === 'day' ? 'Today' : 
-                       timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
-            />
-            <StatsCard
-              title="Average Order Value"
-              value={`₹${averageOrderValue.toFixed(2)}`}
-              subtitle={`${totalOrders} orders`}
-            />
-            <StatsCard
-              title="Total Orders"
-              value={String(totalOrders)}
-              subtitle={timeRange === 'day' ? 'Today' : 
-                       timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
-            />
+          {/* Key Metrics - Color Coded */}
+          <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4 mb-6`}>
+            <Card className="border-2 border-blue-200 bg-blue-50/30">
+              <CardContent className="p-6">
+                <p className="text-sm font-medium text-blue-700 mb-1">Total Revenue</p>
+                <p className="text-3xl font-bold text-blue-600">₹{totalRevenue.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {timeRange === 'day' ? 'Today' : 
+                   timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-green-200 bg-green-50/30">
+              <CardContent className="p-6">
+                <p className="text-sm font-medium text-green-700 mb-1">Average Order</p>
+                <p className="text-3xl font-bold text-green-600">₹{averageOrderValue.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-2">{totalOrders} orders</p>
+              </CardContent>
+            </Card>
+            <Card className="border-2 border-purple-200 bg-purple-50/30">
+              <CardContent className="p-6">
+                <p className="text-sm font-medium text-purple-700 mb-1">Total Orders</p>
+                <p className="text-3xl font-bold text-purple-600">{totalOrders}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {timeRange === 'day' ? 'Today' : 
+                   timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
+                </p>
+              </CardContent>
+            </Card>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <PopularItemsChart items={popularItems} />
-            <SalesTrendChart data={salesByDay} />
-          </div>
+          {/* Popular Items - Table View */}
+          {popularItems.length > 0 && (
+            <Card className="mb-6 border-2">
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setPopularItemsExpanded(!popularItemsExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                    Most Popular Items
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    {popularItemsExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              {popularItemsExpanded && (
+                <CardContent>
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead className={`${isMobile ? 'w-12' : 'w-16'}`}>Rank</TableHead>
+                          <TableHead>Item Name</TableHead>
+                          <TableHead className={`text-right ${isMobile ? 'text-xs' : ''}`}>Qty Sold</TableHead>
+                          <TableHead className={`text-right ${isMobile ? 'text-xs' : ''}`}>%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {popularItems.map((item, index) => {
+                          const totalSold = popularItems.reduce((sum, i) => sum + i.value, 0);
+                          const percentage = totalSold > 0 ? ((item.value / totalSold) * 100).toFixed(1) : '0';
+                          return (
+                            <TableRow key={index} className="hover:bg-blue-50/50">
+                              <TableCell className={`font-bold text-blue-600 ${isMobile ? 'text-xs' : ''}`}>
+                                #{index + 1}
+                              </TableCell>
+                              <TableCell className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{item.name}</TableCell>
+                              <TableCell className={`text-right font-semibold ${isMobile ? 'text-xs' : ''}`}>{item.value}</TableCell>
+                              <TableCell className={`text-right ${isMobile ? 'text-xs' : ''}`}>
+                                <span className="text-muted-foreground">{percentage}%</span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
+          {/* Sales Trend - Table View */}
+          {salesByDay.length > 0 && (
+            <Card className="mb-6 border-2">
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => setSalesTrendExpanded(!salesTrendExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                    Sales by Day
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    {salesTrendExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              {salesTrendExpanded && (
+                <CardContent>
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead>Date</TableHead>
+                          <TableHead className={`text-right ${isMobile ? 'text-xs' : ''}`}>Sales</TableHead>
+                          <TableHead className={`text-right ${isMobile ? 'text-xs' : ''}`}>Change</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {salesByDay.map((day, index) => {
+                          const prevDay = salesByDay[index + 1];
+                          const change = prevDay 
+                            ? day.amount - prevDay.amount 
+                            : 0;
+                          const changePercent = prevDay && prevDay.amount > 0
+                            ? ((change / prevDay.amount) * 100).toFixed(1)
+                            : '0';
+                          return (
+                            <TableRow key={index} className="hover:bg-green-50/50">
+                              <TableCell className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{day.date}</TableCell>
+                              <TableCell className={`text-right font-semibold text-green-700 ${isMobile ? 'text-xs' : ''}`}>
+                                ₹{day.amount.toFixed(2)}
+                              </TableCell>
+                              <TableCell className={`text-right ${isMobile ? 'text-xs' : ''}`}>
+                                {change !== 0 && (
+                                  <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {change > 0 ? '+' : ''}{changePercent}%
+                                  </span>
+                                )}
+                                {change === 0 && (
+                                  <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>-</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
           
-          <div className="grid grid-cols-1 gap-6 mb-6">
-            <ItemSalesAnalysis sales={itemSales} />
-          </div>
+          {/* Item Sales Analysis - Collapsible */}
+          <Card className="mb-6 border-2">
+            <CardHeader 
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setItemSalesExpanded(!itemSalesExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold">Item Sales Analysis</CardTitle>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  {itemSalesExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            {itemSalesExpanded && (
+              <CardContent>
+                <ItemSalesAnalysis sales={itemSales} />
+              </CardContent>
+            )}
+          </Card>
           
-          <div className="grid grid-cols-1 gap-6">
-            <LowStockTable items={lowStockItems || []} />
-          </div>
+          {/* Low Stock - Collapsible */}
+          {lowStockItems && lowStockItems.length > 0 && (
+            <Card className="border-2 border-orange-200">
+              <CardHeader 
+                className="cursor-pointer hover:bg-orange-50/50 transition-colors bg-orange-50/30"
+                onClick={() => setLowStockExpanded(!lowStockExpanded)}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold text-orange-700">
+                    Low Stock Items ({lowStockItems.length})
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    {lowStockExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              {lowStockExpanded && (
+                <CardContent>
+                  <LowStockTable items={lowStockItems} />
+                </CardContent>
+              )}
+            </Card>
+          )}
         </>
       )}
+      </MobileContainer>
     </div>
   );
 }

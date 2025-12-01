@@ -19,7 +19,6 @@ import { TOUCH_TARGETS } from '@/constants/mobile';
 import { 
   User, 
   LogOut, 
-  Settings, 
   Shield,
   ChevronDown,
   Users
@@ -151,19 +150,6 @@ export const UserMenu: React.FC = () => {
               </Button>
             )}
             
-            <Button
-              variant="ghost"
-              className="w-full justify-start min-h-[44px] text-base"
-              style={{ minHeight: `${TOUCH_TARGETS.MINIMUM}px` }}
-              onClick={() => {
-                navigate('/settings');
-                setSheetOpen(false);
-              }}
-            >
-              <Settings className="mr-3 h-5 w-5" />
-              <span>Settings</span>
-            </Button>
-            
             <div className="pt-4 border-t">
               <Button
                 variant="ghost"
@@ -228,11 +214,6 @@ export const UserMenu: React.FC = () => {
             <span>Team Management</span>
           </DropdownMenuItem>
         )}
-        
-        <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
-        </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         

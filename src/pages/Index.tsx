@@ -5,13 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { 
   BarChart3, 
-  ChefHat, 
   ScrollText, 
   ShoppingCart, 
   Package, 
-  AlertTriangle, 
-  Calendar, 
-  PlusCircle,
   TrendingUp,
   TrendingDown,
   Utensils,
@@ -40,8 +36,8 @@ const Index = () => {
   const { data: teamMember } = useCurrentTeamMember();
   const { isMobile } = useDeviceDetection();
   const timeZone = "Asia/Kolkata";
-  const [lowStockExpanded, setLowStockExpanded] = useState(false);
-  const [prepPlanExpanded, setPrepPlanExpanded] = useState(false);
+  const [revenueExpanded, setRevenueExpanded] = useState(false);
+  const [kitchenExpanded, setKitchenExpanded] = useState(false);
 
   // Fetch today's sales
   const { data: todaySales, isLoading: salesLoading, dataUpdatedAt: salesUpdatedAt } = useQuery({
@@ -204,68 +200,6 @@ const Index = () => {
     return todaySales.totalRevenue / todaySales.orders.length;
   }, [todaySales]);
 
-  const { data: lowStockIngredients, isLoading: ingredientsLoading, dataUpdatedAt: ingredientsUpdatedAt } = useQuery({
-    queryKey: ['lowStockIngredients'],
-    queryFn: async () => {
-      try {
-        const THRESHOLD = 10;
-        
-        const { data, error } = await supabase
-          .from('ingredients')
-          .select('*')
-          .lt('stock', THRESHOLD);
-        
-        if (error) throw error;
-        
-        return data || [];
-      } catch (error: any) {
-        toast({
-          title: "Error fetching inventory data",
-          description: error.message,
-          variant: "destructive"
-        });
-        return [];
-      }
-    }
-  });
-
-  const { data: prepPlan, isLoading: prepLoading, dataUpdatedAt: prepUpdatedAt } = useQuery({
-    queryKey: ['tomorrowPrepPlan'],
-    queryFn: async () => {
-      try {
-        const tomorrow = toZonedTime(new Date(), timeZone); // Updated from utcToZonedTime
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        
-        const tomorrowDateStr = format(tomorrow, 'yyyy-MM-dd');
-        
-        const { data, error } = await supabase
-          .from('prepplans')
-          .select('*')
-          .eq('date', tomorrowDateStr as any);
-        
-        if (error) throw error;
-        
-        return data || [];
-      } catch (error: any) {
-        toast({
-          title: "Error fetching prep plan",
-          description: error.message,
-          variant: "destructive"
-        });
-        return [];
-      }
-    }
-  });
-
-  const getTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    
-    if (seconds < 60) return `${seconds} seconds ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-    return `${Math.floor(seconds / 86400)} days ago`;
-  };
 
   const modules = [
     {
@@ -288,27 +222,13 @@ const Index = () => {
       description: "Define dishes and required ingredients",
       path: "/recipes",
       bgColor: "hover:bg-green-50"
-    },
-    {
-      title: "Prep Planning",
-      icon: <ChefHat className="h-8 w-8 text-purple-500" />,
-      description: "View and update daily preparation plans",
-      path: "/prep-plans",
-      bgColor: "hover:bg-purple-50"
-    },
-    {
-      title: "Analytics & Reports",
-      icon: <BarChart3 className="h-8 w-8 text-indigo-500" />,
-      description: "View sales data and inventory analytics",
-      path: "/analytics",
-      bgColor: "hover:bg-indigo-50"
     }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {isMobile ? (
-        <MobileHeader title="Dashboard" />
+        <MobileHeader title="Dashboard" showBack={false} />
       ) : (
         <Header />
       )}
@@ -321,286 +241,257 @@ const Index = () => {
             </div>
           )}
           
-          {/* Key Metrics Row */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 ${lowStockExpanded || prepPlanExpanded ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-2 md:gap-3 lg:gap-4 transition-all duration-300`}>
-          <Card 
-            className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-            onClick={() => navigate('/order-history')}
-          >
-            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-blue-50/50">
-              <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-blue-700">Today's Revenue</CardTitle>
-              <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
-              {salesLoading ? (
-                <p className="text-sm">Loading...</p>
-              ) : (
-                <>
-                  <p className="text-xl md:text-2xl lg:text-3xl font-bold">₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}</p>
-                  {revenueChange && (
-                    <div className={`flex items-center gap-1 mt-1 text-xs ${revenueChange.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                      {revenueChange.isPositive ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      <span>{revenueChange.isPositive ? '+' : ''}₹{Math.abs(revenueChange.change).toFixed(2)} ({revenueChange.percentChange}%)</span>
-                      <span className="text-muted-foreground">vs yesterday</span>
-                    </div>
-                  )}
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{todaySales?.orders?.length || 0} orders • Avg ₹{averageOrderValue.toFixed(2)}</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-            onClick={() => navigate('/kitchen-orders')}
-          >
-            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-green-50/50">
-              <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-green-700">Kitchen Queue</CardTitle>
-              <Utensils className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
-            </CardHeader>
-            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
-              <p className="text-xl md:text-2xl lg:text-3xl font-bold text-green-600">{kitchenOrders?.length || 0}</p>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                {orderStatusBreakdown.pending || 0} pending • {orderStatusBreakdown.in_progress || 0} cooking
-              </p>
-            </CardContent>
-          </Card>
-
-          {(!isMobile || lowStockExpanded) && (
+          {/* Main Dashboard Cards - Only Revenue and Kitchen Queue */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            {/* Today's Revenue Card - Expandable */}
             <Card 
-              className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-              onClick={() => navigate('/inventory')}
+              className={`rounded-xl shadow-lg transition-all duration-300 overflow-hidden border-2 ${
+                revenueExpanded 
+                  ? 'border-blue-400 bg-blue-50/30' 
+                  : 'border-blue-200 bg-white hover:border-blue-300 hover:shadow-xl'
+              }`}
             >
-              <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-orange-50/50">
-                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-orange-700">Low Stock</CardTitle>
-                <div className="flex items-center gap-1">
-                  {isMobile && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLowStockExpanded(false);
-                      }}
-                      className="p-1"
-                    >
-                      <ChevronUp className="h-3 w-3 text-orange-500" />
-                    </button>
-                  )}
-                  <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-orange-500" />
+              <CardHeader 
+                className={`pb-3 pt-4 px-4 flex flex-row items-center justify-between cursor-pointer transition-colors ${
+                  revenueExpanded ? 'bg-blue-500' : 'bg-blue-100 hover:bg-blue-200'
+                }`}
+                onClick={() => setRevenueExpanded(!revenueExpanded)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${revenueExpanded ? 'bg-white/20' : 'bg-blue-500'}`}>
+                    <DollarSign className={`h-5 w-5 ${revenueExpanded ? 'text-white' : 'text-white'}`} />
+                  </div>
+                  <CardTitle className={`text-lg font-bold ${revenueExpanded ? 'text-white' : 'text-blue-900'}`}>
+                    Today's Revenue
+                  </CardTitle>
                 </div>
+                <button className="p-1 hover:bg-white/20 rounded-full transition-colors">
+                  {revenueExpanded ? (
+                    <ChevronUp className={`h-5 w-5 ${revenueExpanded ? 'text-white' : 'text-blue-700'}`} />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-blue-700" />
+                  )}
+                </button>
               </CardHeader>
-              <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
-                {ingredientsLoading ? (
-                  <p className="text-xs md:text-sm">Loading...</p>
+              <CardContent className="p-4">
+                {salesLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading...</p>
                 ) : (
-                  <div>
-                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground mt-1">items need restocking</p>
-                    {lowStockIngredients && lowStockIngredients.length > 0 && (
-                      <p className="text-xs text-orange-600 mt-1 truncate">
-                        {lowStockIngredients.slice(0, 2).map((ing: any) => ing.name).join(', ')}
-                        {lowStockIngredients.length > 2 && '...'}
+                  <>
+                    <div className="mb-4">
+                      <p className="text-4xl font-bold text-blue-600 mb-2">
+                        ₹{todaySales?.totalRevenue?.toFixed(2) || "0.00"}
                       </p>
+                      {revenueChange && (
+                        <div className={`flex items-center gap-2 text-sm font-medium ${
+                          revenueChange.isPositive ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {revenueChange.isPositive ? (
+                            <TrendingUp className="h-4 w-4" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4" />
+                          )}
+                          <span>
+                            {revenueChange.isPositive ? '+' : ''}₹{Math.abs(revenueChange.change).toFixed(2)} 
+                            ({revenueChange.percentChange}%) vs yesterday
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {todaySales?.orders?.length || 0} orders • Avg ₹{averageOrderValue.toFixed(2)}
+                      </p>
+                    </div>
+                    
+                    {/* Expanded Section - Top Selling Items */}
+                    {revenueExpanded && (
+                      <div className="mt-4 pt-4 border-t border-blue-200 animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4 text-blue-600" />
+                            Top Selling Items Today
+                          </h3>
+                        </div>
+                        {topSellingItems.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">No sales data yet</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {topSellingItems.slice(0, 5).map((item, index) => (
+                              <div 
+                                key={item.id} 
+                                className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                    index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                                    index === 1 ? 'bg-gray-300 text-gray-700' :
+                                    index === 2 ? 'bg-orange-300 text-orange-900' :
+                                    'bg-blue-200 text-blue-800'
+                                  }`}>
+                                    #{index + 1}
+                                  </div>
+                                  <span className="text-sm font-medium truncate">{item.name}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm">
+                                  <span className="text-muted-foreground">{item.count} sold</span>
+                                  <span className="font-bold text-blue-600">₹{item.revenue.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            ))}
+                            {topSellingItems.length > 5 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate('/analytics');
+                                }}
+                                className="w-full mt-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                View All ({topSellingItems.length} items) →
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Kitchen Queue Card - Expandable */}
+            <Card 
+              className={`rounded-xl shadow-lg transition-all duration-300 overflow-hidden border-2 ${
+                kitchenExpanded 
+                  ? 'border-green-400 bg-green-50/30' 
+                  : 'border-green-200 bg-white hover:border-green-300 hover:shadow-xl'
+              }`}
+            >
+              <CardHeader 
+                className={`pb-3 pt-4 px-4 flex flex-row items-center justify-between cursor-pointer transition-colors ${
+                  kitchenExpanded ? 'bg-green-500' : 'bg-green-100 hover:bg-green-200'
+                }`}
+                onClick={() => setKitchenExpanded(!kitchenExpanded)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${kitchenExpanded ? 'bg-white/20' : 'bg-green-500'}`}>
+                    <Utensils className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className={`text-lg font-bold ${kitchenExpanded ? 'text-white' : 'text-green-900'}`}>
+                    Kitchen Queue
+                  </CardTitle>
+                </div>
+                <button className="p-1 hover:bg-white/20 rounded-full transition-colors">
+                  {kitchenExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-white" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-green-700" />
+                  )}
+                </button>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="mb-4">
+                  <p className="text-4xl font-bold text-green-600 mb-2">
+                    {kitchenOrders?.length || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {orderStatusBreakdown.pending || 0} pending • {orderStatusBreakdown.in_progress || 0} cooking
+                  </p>
+                </div>
+                
+                {/* Expanded Section - Order Status Breakdown */}
+                {kitchenExpanded && (
+                  <div className="mt-4 pt-4 border-t border-green-200 animate-in slide-in-from-top-2 duration-300">
+                    <h3 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Order Status Breakdown
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-yellow-600 mb-1">{orderStatusBreakdown.pending || 0}</p>
+                        <p className="text-xs font-medium text-yellow-700">Pending</p>
+                      </div>
+                      <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-blue-600 mb-1">{orderStatusBreakdown.in_progress || 0}</p>
+                        <p className="text-xs font-medium text-blue-700">Cooking</p>
+                      </div>
+                      <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-green-600 mb-1">{orderStatusBreakdown.ready || 0}</p>
+                        <p className="text-xs font-medium text-green-700">Ready</p>
+                      </div>
+                      <div className="p-4 bg-gray-50 border-2 border-gray-200 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-gray-600 mb-1">{orderStatusBreakdown.completed || 0}</p>
+                        <p className="text-xs font-medium text-gray-700">Completed</p>
+                      </div>
+                    </div>
+                    {recentOrders.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-green-200">
+                        <p className="text-xs font-semibold text-green-900 mb-2">Recent Orders</p>
+                        <div className="space-y-2">
+                          {recentOrders.slice(0, 5).map((order: any, idx: number) => (
+                            <div 
+                              key={idx} 
+                              className="flex items-center justify-between p-2 bg-white rounded-lg border border-green-100 hover:bg-green-50 transition-colors"
+                            >
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(order.timestamp), 'HH:mm')}
+                              </span>
+                              <span className="text-sm font-semibold text-green-700">
+                                ₹{order.total?.toFixed(2) || '0.00'}
+                              </span>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                order.order_status === 'completed' ? 'bg-green-100 text-green-700 border border-green-300' :
+                                order.order_status === 'ready' ? 'bg-blue-100 text-blue-700 border border-blue-300' :
+                                order.order_status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' :
+                                'bg-gray-100 text-gray-700 border border-gray-300'
+                              }`}>
+                                {order.order_status || 'pending'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/kitchen-orders');
+                          }}
+                          className="w-full mt-3 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          View All Kitchen Orders →
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}
               </CardContent>
             </Card>
-          )}
-          {isMobile && !lowStockExpanded && (
-            <Card 
-              className="rounded-lg shadow-sm cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-              onClick={(e) => {
-                e.stopPropagation();
-                setLowStockExpanded(true);
-              }}
-            >
-              <CardHeader className="pb-2 pt-2 px-2 flex flex-row items-center justify-between bg-orange-50/50">
-                <CardTitle className="text-xs font-medium text-orange-700">Low Stock</CardTitle>
-                <ChevronDown className="h-3 w-3 text-orange-500" />
-              </CardHeader>
-              <CardContent className="pt-2 px-2 pb-2">
-                <p className="text-lg font-bold text-orange-500">{Array.isArray(lowStockIngredients) ? lowStockIngredients.length : 0}</p>
-              </CardContent>
-            </Card>
-          )}
+          </div>
 
-          {(!isMobile || prepPlanExpanded) && (
-            <Card 
-              className="rounded-lg md:rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-              onClick={() => navigate('/prep-plans')}
-            >
-              <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 flex flex-row items-center justify-between bg-purple-50/50">
-                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-purple-700">Prep Plan</CardTitle>
-                <div className="flex items-center gap-1">
-                  {isMobile && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPrepPlanExpanded(false);
-                      }}
-                      className="p-1"
-                    >
-                      <ChevronUp className="h-3 w-3 text-purple-500" />
-                    </button>
-                  )}
-                  <Calendar className="h-3 w-3 md:h-4 md:w-4 text-purple-500" />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
-                {prepLoading ? (
-                  <p className="text-xs md:text-sm">Loading...</p>
-                ) : prepPlan && prepPlan.length === 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs md:text-sm">No prep plan for tomorrow</p>
-                    <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate('/prep-plans'); }} className="flex items-center text-xs h-6 md:h-7">
-                      <PlusCircle className="h-3 w-3 mr-1" />
-                      Plan Now
-                    </Button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground mt-1">items for tomorrow</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-          {isMobile && !prepPlanExpanded && (
-            <Card 
-              className="rounded-lg shadow-sm cursor-pointer bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 overflow-hidden"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPrepPlanExpanded(true);
-              }}
-            >
-              <CardHeader className="pb-2 pt-2 px-2 flex flex-row items-center justify-between bg-purple-50/50">
-                <CardTitle className="text-xs font-medium text-purple-700">Prep Plan</CardTitle>
-                <ChevronDown className="h-3 w-3 text-purple-500" />
-              </CardHeader>
-              <CardContent className="pt-2 px-2 pb-2">
-                <p className="text-lg font-bold text-purple-700">{Array.isArray(prepPlan) ? prepPlan.length : 0}</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
 
-        {/* Data-Driven Insights Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 lg:gap-4 mt-3 md:mt-4 lg:mt-6">
-          {/* Top Selling Items */}
-          <Card className="rounded-lg md:rounded-xl shadow-sm bg-white/70 backdrop-blur-sm border-muted/20">
-            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 bg-indigo-50/50">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-indigo-700">Top Selling Items Today</CardTitle>
-                <BarChart3 className="h-3 w-3 md:h-4 md:w-4 text-indigo-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
-              {topSellingItems.length === 0 ? (
-                <p className="text-xs md:text-sm text-muted-foreground text-center py-3 md:py-4">No sales data yet</p>
-              ) : (
-                <div className="space-y-1 md:space-y-2">
-                  {topSellingItems.slice(0, 3).map((item, index) => (
-                    <div key={item.id} className="flex items-center justify-between p-1.5 md:p-2 bg-muted/30 rounded-md">
-                      <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
-                        <span className="text-xs font-bold text-muted-foreground w-3 md:w-4">#{index + 1}</span>
-                        <span className="text-xs md:text-sm font-medium truncate">{item.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 md:gap-3 text-xs">
-                        <span className="text-muted-foreground">{item.count} sold</span>
-                        <span className="font-semibold text-indigo-600">₹{item.revenue.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {topSellingItems.length > 3 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate('/analytics')}
-                      className="w-full mt-2 text-xs h-7"
-                    >
-                      View All ({topSellingItems.length} items)
-                    </Button>
-                  )}
+        {/* Simplified Quick Actions - Only Essential */}
+        <div className="mt-6 md:mt-8">
+          <h2 className="text-lg font-semibold mb-4 text-muted-foreground">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            {modules.filter(m => 
+              m.title === "POS / Sales Entry" || 
+              m.title === "Inventory Management" || 
+              m.title === "Recipe Management"
+            ).map((module) => (
+              <Button
+                key={module.title}
+                variant="outline"
+                className={`h-auto p-4 md:p-6 flex flex-col items-center justify-center gap-3 text-center rounded-xl transition-all duration-200 hover:shadow-lg bg-white border-2 hover:scale-105 ${module.bgColor}`}
+                onClick={() => navigate(module.path)}
+              >
+                <div className="h-10 w-10 md:h-12 md:w-12">{module.icon}</div>
+                <div>
+                  <h3 className="font-bold text-sm md:text-base">{module.title.replace(' / Sales Entry', '').replace(' Management', '')}</h3>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Order Status & Recent Orders */}
-          <Card className="rounded-lg md:rounded-xl shadow-sm bg-white/70 backdrop-blur-sm border-muted/20">
-            <CardHeader className="pb-2 pt-2 md:pt-3 px-2 md:px-3 lg:px-4 bg-blue-50/50">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs md:text-sm lg:text-base font-medium text-blue-700">Order Status</CardTitle>
-                <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-2 md:pt-3 px-2 md:px-3 lg:px-4 pb-2 md:pb-3 lg:pb-4">
-              <div className="grid grid-cols-2 gap-1.5 md:gap-2 mb-2 md:mb-3">
-                <div className="p-2 bg-yellow-50 rounded-md text-center">
-                  <p className="text-lg font-bold text-yellow-600">{orderStatusBreakdown.pending || 0}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                </div>
-                <div className="p-2 bg-blue-50 rounded-md text-center">
-                  <p className="text-lg font-bold text-blue-600">{orderStatusBreakdown.in_progress || 0}</p>
-                  <p className="text-xs text-muted-foreground">Cooking</p>
-                </div>
-                <div className="p-2 bg-green-50 rounded-md text-center">
-                  <p className="text-lg font-bold text-green-600">{orderStatusBreakdown.ready || 0}</p>
-                  <p className="text-xs text-muted-foreground">Ready</p>
-                </div>
-                <div className="p-2 bg-gray-50 rounded-md text-center">
-                  <p className="text-lg font-bold text-gray-600">{orderStatusBreakdown.completed || 0}</p>
-                  <p className="text-xs text-muted-foreground">Completed</p>
-                </div>
-              </div>
-              {recentOrders.length > 0 && (
-                <div className="mt-3 pt-3 border-t">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Recent Orders</p>
-                  <div className="space-y-1">
-                    {recentOrders.slice(0, 3).map((order: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">
-                          {format(new Date(order.timestamp), 'HH:mm')}
-                        </span>
-                        <span className="font-medium">₹{order.total?.toFixed(2) || '0.00'}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs ${
-                          order.order_status === 'completed' ? 'bg-green-100 text-green-700' :
-                          order.order_status === 'ready' ? 'bg-blue-100 text-blue-700' :
-                          order.order_status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {order.order_status || 'pending'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
-          {modules.filter(m => m.title !== "Analytics & Reports").map((module) => (
-            <Button
-              key={module.title}
-              variant="outline"
-              className={`h-auto p-3 md:p-4 flex flex-col items-center justify-center gap-2 text-center rounded-lg md:rounded-xl transition-all duration-200 hover:shadow-md bg-white/70 backdrop-blur-sm border-muted/20 hover:border-primary/20 ${module.bgColor}`}
-              onClick={() => navigate(module.path)}
-            >
-              <div className="h-6 w-6 md:h-8 md:w-8">{module.icon}</div>
-              <div>
-                <h3 className="font-semibold text-xs md:text-sm">{module.title}</h3>
-                <p className="text-xs text-muted-foreground hidden md:block mt-1">{module.description}</p>
-              </div>
-            </Button>
-          ))}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {!isMobile && (

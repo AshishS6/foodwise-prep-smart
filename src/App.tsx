@@ -25,7 +25,6 @@ const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const Profile = lazy(() => import("./pages/Profile"));
-const Settings = lazy(() => import("./pages/Settings"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Test = lazy(() => import("./pages/Test"));
 const KitchenOrders = lazy(() => import("./pages/KitchenOrders"));
@@ -299,16 +298,6 @@ const AppContent = () => {
               } 
             />
             <Route 
-              path="/settings" 
-              element={
-                <ProtectedRoute requiredPermission="dashboard">
-                  <Suspense fallback={<LoadingFallback />}>
-                    <Settings />
-                  </Suspense>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
               path="/test" 
               element={
                 <Suspense fallback={<LoadingFallback />}>
@@ -465,16 +454,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="dashboard">
                   <Suspense fallback={<LoadingFallback />}>
                     <Profile />
-                  </Suspense>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <ProtectedRoute requiredPermission="dashboard">
-                  <Suspense fallback={<LoadingFallback />}>
-                    <Settings />
                   </Suspense>
                 </ProtectedRoute>
               } 

@@ -25,7 +25,6 @@ import {
   ChefHat,
   BarChart3,
   Users,
-  Settings,
   FileText,
   Utensils,
 } from 'lucide-react';
@@ -49,13 +48,13 @@ const menuItems: MenuItem[] = [
   { title: 'Dashboard', icon: <Home className="h-4 w-4" />, path: '/', permission: 'dashboard' },
   { title: 'POS', icon: <ShoppingCart className="h-4 w-4" />, path: '/pos', permission: 'pos' },
   { title: 'Kitchen Orders', icon: <Utensils className="h-4 w-4" />, path: '/kitchen-orders', permission: 'kitchen' },
-  { title: 'Inventory', icon: <Package className="h-4 w-4" />, path: '/inventory', permission: 'inventory' },
-  { title: 'Recipes', icon: <ScrollText className="h-4 w-4" />, path: '/recipes', permission: 'recipes' },
-  { title: 'Prep Plans', icon: <ChefHat className="h-4 w-4" />, path: '/prep-plans', permission: 'prepplans' },
+  // Temporarily hidden: Inventory and Prep pages
+  // { title: 'Inventory', icon: <Package className="h-4 w-4" />, path: '/inventory', permission: 'inventory' },
+  // { title: 'Recipes', icon: <ScrollText className="h-4 w-4" />, path: '/recipes', permission: 'recipes' },
+  // { title: 'Prep Plans', icon: <ChefHat className="h-4 w-4" />, path: '/prep-plans', permission: 'prepplans' },
   { title: 'Order History', icon: <FileText className="h-4 w-4" />, path: '/order-history', permission: 'orderhistory' },
   { title: 'Analytics', icon: <BarChart3 className="h-4 w-4" />, path: '/analytics', permission: 'analytics' },
   { title: 'Team Management', icon: <Users className="h-4 w-4" />, path: '/team-management', permission: 'team' },
-  { title: 'Settings', icon: <Settings className="h-4 w-4" />, path: '/settings', permission: 'dashboard' },
 ];
 
 export const ResponsiveSidebarContent: React.FC = () => {

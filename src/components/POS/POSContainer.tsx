@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, Download, Split, FileText, AlertCircle } from "lucide-react";
+import { Upload, Download, Split, FileText } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,19 +13,33 @@ import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { LAYOUT_DIMENSIONS } from "@/constants/mobile";
 import MenuList from "./MenuList";
 import OrderList from "./OrderList";
+import CartSummaryBar from "./CartSummaryBar";
 import { CartItem, MenuCategory, PortionType } from "@/types";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toZonedTime } from "date-fns-tz";
 
-const POSContainer = () => {
+interface POSContainerProps {
+  searchTerm?: string;
+  setSearchTerm?: (term: string) => void;
+  showAdminControls?: boolean;
+  onToggleAdminControls?: () => void;
+}
+
+const POSContainer = ({ 
+  searchTerm: externalSearchTerm = "", 
+  setSearchTerm: externalSetSearchTerm,
+  showAdminControls,
+  onToggleAdminControls
+}: POSContainerProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [internalSearchTerm, setInternalSearchTerm] = useState<string>("");
+  const searchTerm = externalSearchTerm || internalSearchTerm;
+  const setSearchTerm = externalSetSearchTerm || setInternalSearchTerm;
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   // Store order type per bill group: { billGroupId: orderType }
   const [orderTypes, setOrderTypes] = useState<Record<number, 'take_away' | 'seating'>>({ 1: 'take_away' });
@@ -58,14 +72,7 @@ const POSContainer = () => {
   };
 
   const {
-    missingRecipes,
-    setMissingRecipes,
-    showMissingRecipeAlert,
-    setShowMissingRecipeAlert,
-    isValidatingOrder,
-    setIsValidatingOrder,
-    submitOrder,
-    validateOrderRecipes
+    submitOrder
   } = useOrderSubmission();
 
   const { data: recipes } = useQuery({
@@ -123,44 +130,36 @@ const POSContainer = () => {
       return;
     }
 
-    setIsValidatingOrder(true);
-    const isValid = await validateOrderRecipes(cart, recipes || []);
-    setIsValidatingOrder(false);
-    
-    if (!isValid) {
-      setShowMissingRecipeAlert(true);
-    } else {
-      // Group cart items by bill group and submit each with its own order type
-      const groupedBills = billGroups.map(group => ({
-        groupId: group,
-        items: cart.filter(item => item.billGroup === group),
-        orderType: orderTypes[group] || 'take_away'
-      })).filter(bill => bill.items.length > 0);
+    // Group cart items by bill group and submit each with its own order type
+    const groupedBills = billGroups.map(group => ({
+      groupId: group,
+      items: cart.filter(item => item.billGroup === group),
+      orderType: orderTypes[group] || 'take_away'
+    })).filter(bill => bill.items.length > 0);
 
-      // Submit all bills
-      Promise.all(
-        groupedBills.map(bill => 
-          submitOrder.mutateAsync({ cart: bill.items, orderType: bill.orderType })
-        )
-      ).then(() => {
-        setCart([]);
-        setBillGroups([1]);
-        setCurrentBillGroup(1);
-        setOrderTypes({ 1: 'take_away' });
-        
-        toast({
-          title: "Order completed successfully",
-          description: "All bills have been processed",
-          variant: "default"
-        });
-      }).catch((error) => {
-        toast({
-          title: "Error submitting orders",
-          description: error.message,
-          variant: "destructive"
-        });
+    // Submit all bills
+    Promise.all(
+      groupedBills.map(bill => 
+        submitOrder.mutateAsync({ cart: bill.items, orderType: bill.orderType })
+      )
+    ).then(() => {
+      setCart([]);
+      setBillGroups([1]);
+      setCurrentBillGroup(1);
+      setOrderTypes({ 1: 'take_away' });
+      
+      toast({
+        title: "Order completed successfully",
+        description: "All bills have been processed",
+        variant: "default"
       });
-    }
+    }).catch((error) => {
+      toast({
+        title: "Error submitting orders",
+        description: error.message,
+        variant: "destructive"
+      });
+    });
   };
 
   const submitCurrentGroup = async () => {
@@ -175,39 +174,31 @@ const POSContainer = () => {
       return;
     }
 
-    setIsValidatingOrder(true);
-    const isValid = await validateOrderRecipes(currentGroupItems, recipes || []);
-    setIsValidatingOrder(false);
-    
-    if (!isValid) {
-      setShowMissingRecipeAlert(true);
-    } else {
-      const billOrderType = orderTypes[currentBillGroup] || 'take_away';
-      submitOrder.mutate({ cart: currentGroupItems, orderType: billOrderType }, {
-        onSuccess: () => {
-          setCart(cart.filter(item => item.billGroup !== currentBillGroup));
-          
-          // Remove order type for deleted bill group
-          const updatedOrderTypes = { ...orderTypes };
-          delete updatedOrderTypes[currentBillGroup];
-          setOrderTypes(updatedOrderTypes);
-          
-          if (billGroups.length > 1) {
-            const remainingGroups = billGroups.filter(g => g !== currentBillGroup);
-            setBillGroups(remainingGroups);
-            setCurrentBillGroup(remainingGroups[0]);
-          } else {
-            setCurrentBillGroup(1);
-          }
-          
-          toast({
-            title: "Bill completed",
-            description: `Bill #${currentBillGroup} has been processed`,
-            variant: "default"
-          });
+    const billOrderType = orderTypes[currentBillGroup] || 'take_away';
+    submitOrder.mutate({ cart: currentGroupItems, orderType: billOrderType }, {
+      onSuccess: () => {
+        setCart(cart.filter(item => item.billGroup !== currentBillGroup));
+        
+        // Remove order type for deleted bill group
+        const updatedOrderTypes = { ...orderTypes };
+        delete updatedOrderTypes[currentBillGroup];
+        setOrderTypes(updatedOrderTypes);
+        
+        if (billGroups.length > 1) {
+          const remainingGroups = billGroups.filter(g => g !== currentBillGroup);
+          setBillGroups(remainingGroups);
+          setCurrentBillGroup(remainingGroups[0]);
+        } else {
+          setCurrentBillGroup(1);
         }
-      });
-    }
+        
+        toast({
+          title: "Bill completed",
+          description: `Bill #${currentBillGroup} has been processed`,
+          variant: "default"
+        });
+      }
+    });
   };
 
   const currentGroupTotal = cart
@@ -261,27 +252,100 @@ const POSContainer = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6">
-      {!isMobile && (
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="mr-2"
-              onClick={() => {
-                console.log("Navigating back to home");
-                navigate('/');
-              }}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-            <h1 className="text-2xl font-bold">Point of Sale</h1>
-          </div>
-        </div>
+
+      {/* Mobile Cart Summary Bar */}
+      {isMobile && (
+        <CartSummaryBar
+          cart={cart}
+          total={total}
+          currentBillGroup={currentBillGroup}
+          billGroups={billGroups}
+          orderTypes={orderTypes}
+          onUpdateQuantity={(itemId, portionLabel, change) => {
+            // Find item by matching itemId and portionLabel
+            // Note: If same item exists in multiple bills, this will find the first match
+            // But since CartSummaryBar filters by group before calling, it should be unique
+            const cartItemIndex = cart.findIndex(item => 
+              item.menuItemId === itemId && 
+              item.portionType.label === portionLabel
+            );
+            if (cartItemIndex !== -1) {
+              updateQuantity(cartItemIndex, change);
+            }
+          }}
+          onSetQuantity={(itemId, portionLabel, quantity) => {
+            const cartItemIndex = cart.findIndex(item => 
+              item.menuItemId === itemId && 
+              item.portionType.label === portionLabel
+            );
+            if (cartItemIndex !== -1) {
+              setItemQuantity(cartItemIndex, quantity);
+            }
+          }}
+          onUpdateNote={(itemId, portionLabel, note) => {
+            const cartItemIndex = cart.findIndex(item => 
+              item.menuItemId === itemId && 
+              item.portionType.label === portionLabel
+            );
+            if (cartItemIndex !== -1) {
+              updateNote(cartItemIndex, note);
+            }
+          }}
+          onRemoveItem={(itemId, portionLabel) => {
+            const cartItemIndex = cart.findIndex(item => 
+              item.menuItemId === itemId && 
+              item.portionType.label === portionLabel
+            );
+            if (cartItemIndex !== -1) {
+              removeFromCart(cartItemIndex);
+            }
+          }}
+          onOrderTypeChange={setOrderTypeForBill}
+          onBillGroupChange={setCurrentBillGroup}
+          onAddBillGroup={() => {
+            const newGroup = addBillGroup();
+            setOrderTypes(prev => ({ ...prev, [newGroup]: 'take_away' }));
+            return newGroup;
+          }}
+          onDeleteBillGroup={deleteBillGroupInner}
+          onSubmitOrder={(billGroup?: number) => {
+            if (billGroup) {
+              const groupItems = cart.filter(item => item.billGroup === billGroup);
+              if (groupItems.length === 0) return;
+              
+              const billOrderType = orderTypes[billGroup] || 'take_away';
+              submitOrder.mutate({ cart: groupItems, orderType: billOrderType }, {
+                onSuccess: () => {
+                  setCart(cart.filter(item => item.billGroup !== billGroup));
+                  const updatedOrderTypes = { ...orderTypes };
+                  delete updatedOrderTypes[billGroup];
+                  setOrderTypes(updatedOrderTypes);
+                  
+                  if (billGroups.length > 1) {
+                    const remainingGroups = billGroups.filter(g => g !== billGroup);
+                    setBillGroups(remainingGroups);
+                    setCurrentBillGroup(remainingGroups[0]);
+                  } else {
+                    setCurrentBillGroup(1);
+                  }
+                  
+                  toast({
+                    title: "Bill completed",
+                    description: `Bill #${billGroup} has been processed`,
+                    variant: "default"
+                  });
+                }
+              });
+            } else {
+              submitCurrentGroup();
+            }
+          }}
+          onSubmitAllOrders={handleOrderSubmit}
+          isSubmitting={submitOrder.isPending}
+        />
       )}
 
-      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6" style={isMobile && cart.length > 0 ? { paddingBottom: '100px' } : {}}>
         <div className="lg:col-span-2 space-y-4 order-1">
           <MenuList 
             onAddToCart={(item, portionType, note) => addToCart(item, portionType, currentBillGroup, note)}
@@ -301,7 +365,9 @@ const POSContainer = () => {
             cart={cart}
             currentBillGroup={currentBillGroup}
             searchTerm={searchTerm} 
-            setSearchTerm={setSearchTerm} 
+            setSearchTerm={setSearchTerm}
+            showAdminControls={showAdminControls}
+            onToggleAdminControls={onToggleAdminControls}
           />
         </div>
 
@@ -309,11 +375,15 @@ const POSContainer = () => {
           currentOrderType === 'seating' 
             ? 'bg-green-50 border-green-300' 
             : 'bg-blue-50 border-blue-300'
-        } ${isMobile ? 'order-2 mt-6 flex flex-col' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
+        } ${isMobile ? 'order-2 mt-6 hidden' : 'order-2 lg:order-2 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto'}`}>
           {isMobile ? (
             <>
-              {/* Scrollable content area */}
-              <div className="flex-1 overflow-y-auto p-4 pb-24" style={{
+              {/* Mobile: Cart section is hidden, using CartSummaryBar instead */}
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <p>Cart is available in the bottom bar</p>
+              </div>
+              {/* Scrollable content area - Hidden on mobile */}
+              <div className="flex-1 overflow-y-auto p-4 pb-24 hidden" style={{
                 maxHeight: `calc(100vh - ${LAYOUT_DIMENSIONS.MOBILE_HEADER_HEIGHT + LAYOUT_DIMENSIONS.BOTTOM_NAV_HEIGHT + 120}px)`
               }}>
                 <div className="mb-4">
@@ -413,14 +483,14 @@ const POSContainer = () => {
                           removeFromCart(globalIndex);
                         }}
                         onSubmitOrder={submitCurrentGroup}
-                        isSubmitting={submitOrder.isPending || isValidatingOrder}
+                        isSubmitting={submitOrder.isPending}
                       />
                       <div className="mt-2">
                         <Button
                           variant="outline"
                           className="w-full text-sm"
                           onClick={submitCurrentGroup}
-                          disabled={submitOrder.isPending || isValidatingOrder}
+                          disabled={submitOrder.isPending}
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           Complete Bill #{group}
@@ -443,9 +513,9 @@ const POSContainer = () => {
                   className="w-full" 
                   size="lg"
                   onClick={handleOrderSubmit}
-                  disabled={submitOrder.isPending || isValidatingOrder || cart.length === 0}
+                  disabled={submitOrder.isPending || cart.length === 0}
                 >
-                  {submitOrder.isPending || isValidatingOrder ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
+                  {submitOrder.isPending ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
                 </Button>
               </div>
             </>
@@ -549,14 +619,14 @@ const POSContainer = () => {
                           removeFromCart(globalIndex);
                         }}
                         onSubmitOrder={submitCurrentGroup}
-                        isSubmitting={submitOrder.isPending || isValidatingOrder}
+                        isSubmitting={submitOrder.isPending}
                       />
                       <div className="mt-2">
                         <Button
                           variant="outline"
                           className="w-full text-sm"
                           onClick={submitCurrentGroup}
-                          disabled={submitOrder.isPending || isValidatingOrder}
+                          disabled={submitOrder.isPending}
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           Complete Bill #{group}
@@ -572,9 +642,9 @@ const POSContainer = () => {
                   className="w-full" 
                   size="lg"
                   onClick={handleOrderSubmit}
-                  disabled={submitOrder.isPending || isValidatingOrder || cart.length === 0}
+                  disabled={submitOrder.isPending || cart.length === 0}
                 >
-                  {submitOrder.isPending || isValidatingOrder ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
+                  {submitOrder.isPending ? "Processing..." : `Complete All Bills (₹${total.toFixed(2)})`}
                 </Button>
               </div>
             </>
@@ -582,60 +652,6 @@ const POSContainer = () => {
         </div>
       </div>
 
-      <AlertDialog open={showMissingRecipeAlert} onOpenChange={setShowMissingRecipeAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
-              Missing Recipe Data
-            </AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogDescription>
-            The following items do not have recipe data defined:
-            <ul className="mt-2 list-disc pl-5">
-              {missingRecipes.map((item, index) => (
-                <li key={index} className="mb-1">{item}</li>
-              ))}
-            </ul>
-            <p className="mt-2">
-              Without recipe data, inventory stock will not be automatically reduced.
-              Do you want to continue anyway?
-            </p>
-          </AlertDialogDescription>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              // Group cart items by bill group and submit each with its own order type
-              const groupedBills = billGroups.map(group => ({
-                groupId: group,
-                items: cart.filter(item => item.billGroup === group),
-                orderType: orderTypes[group] || 'take_away'
-              })).filter(bill => bill.items.length > 0);
-
-              // Submit all bills
-              Promise.all(
-                groupedBills.map(bill => 
-                  submitOrder.mutateAsync({ cart: bill.items, orderType: bill.orderType })
-                )
-              ).then(() => {
-                setCart([]);
-                setBillGroups([1]);
-                setCurrentBillGroup(1);
-                setOrderTypes({ 1: 'take_away' });
-                setShowMissingRecipeAlert(false);
-              }).catch((error) => {
-                toast({
-                  title: "Error submitting orders",
-                  description: error.message,
-                  variant: "destructive"
-                });
-              });
-            }}>
-              Continue Anyway
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

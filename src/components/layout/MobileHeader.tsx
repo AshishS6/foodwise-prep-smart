@@ -31,7 +31,6 @@ const getBreadcrumbs = (pathname: string): Array<{ label: string; path?: string 
     'analytics': 'Analytics',
     'team-management': 'Team Management',
     'profile': 'Profile',
-    'settings': 'Settings',
   };
 
   let currentPath = '';

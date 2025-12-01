@@ -3,13 +3,15 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Upload, Pencil, Download, MinusCircle, PlusCircle } from "lucide-react";
+import { Search, Plus, Upload, Pencil, Download, MinusCircle, PlusCircle, Settings, Clock, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import EditItemDialog from "./EditItemDialog";
 import PortionTypeSelector from "./PortionTypeSelector";
 import { PortionType } from "@/types";
+import { useCurrentTeamMember } from "@/hooks/useTeamMembers";
+import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { 
   Dialog, 
   DialogContent, 
@@ -26,6 +28,8 @@ interface MenuListProps {
   setSearchTerm?: (term: string) => void;
   cart?: any[];
   currentBillGroup?: number;
+  showAdminControls?: boolean;
+  onToggleAdminControls?: () => void;
 }
 
 const MenuList = ({ 
@@ -34,7 +38,9 @@ const MenuList = ({
   searchTerm = "", 
   setSearchTerm,
   cart = [],
-  currentBillGroup = 1
+  currentBillGroup = 1,
+  showAdminControls: externalShowAdminControls,
+  onToggleAdminControls
 }: MenuListProps) => {
   const [categories] = useState([
     "All Items", 
@@ -50,6 +56,13 @@ const MenuList = ({
   const [selectedPortions, setSelectedPortions] = useState<Record<number, PortionType>>({});
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [internalShowAdminControls, setInternalShowAdminControls] = useState(false);
+  const showAdminControls = externalShowAdminControls !== undefined ? externalShowAdminControls : internalShowAdminControls;
+  const setShowAdminControls = onToggleAdminControls || setInternalShowAdminControls;
+  const [recentItems, setRecentItems] = useState<number[]>([]);
+  const { data: teamMember } = useCurrentTeamMember();
+  const { isMobile } = useDeviceDetection();
+  const isAdmin = teamMember?.role === 'Admin' || teamMember?.role === 'Manager';
 
   const queryClient = useQueryClient();
 
@@ -63,7 +76,7 @@ const MenuList = ({
       
       if (error) throw error;
       
-      return (data || []).map(item => {
+      return ((data || []) as any[]).map((item: any) => {
         let portions: PortionType[] = [];
         
         if (item.portions && typeof item.portions === 'string') {
@@ -79,7 +92,7 @@ const MenuList = ({
         if (portions.length === 0) {
           portions = [{
             label: 'Full',
-            price: item.price,
+            price: item.price || 0,
             unit: 'plate',
             multiplier: 1
           }];
@@ -90,6 +103,38 @@ const MenuList = ({
           portions
         };
       });
+    }
+  });
+
+  // Fetch popular items from recent orders
+  const { data: popularItems } = useQuery({
+    queryKey: ['popularItems'],
+    queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('items')
+        .gte('timestamp', today.toISOString());
+      
+      if (error) return [];
+      
+      const itemCounts: Record<number, number> = {};
+      orders?.forEach((order: any) => {
+        if (Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            if (item.menuItemId) {
+              itemCounts[item.menuItemId] = (itemCounts[item.menuItemId] || 0) + (item.quantity || 1);
+            }
+          });
+        }
+      });
+      
+      return Object.entries(itemCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 8)
+        .map(([id]) => parseInt(id));
     }
   });
 
@@ -129,7 +174,7 @@ const MenuList = ({
 
       const { data, error } = await supabase
         .from('menuitems')
-        .insert(formattedItems);
+        .insert(formattedItems as any);
       
       if (error) throw error;
       
@@ -157,12 +202,53 @@ const MenuList = ({
 
   const [importedItems, setImportedItems] = useState<any[]>([]);
 
+  // Keyboard shortcuts
   useEffect(() => {
-    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere if typing in input
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Escape to clear search
+      if (e.key === 'Escape') {
+        setLocalSearch('');
+        if (setSearchTerm) setSearchTerm('');
+      }
+
+      // Number keys 1-5 for categories
+      if (e.key >= '1' && e.key <= '5') {
+        const categoryIndex = parseInt(e.key) - 1;
+        if (categories[categoryIndex]) {
+          setActiveCategory(categories[categoryIndex]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [categories]);
+
+  // Load recent items from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('pos_recent_items');
+    if (stored) {
+      try {
+        setRecentItems(JSON.parse(stored));
+      } catch {
+        setRecentItems([]);
+      }
     }
   }, []);
+
+  // Save item to recent when added to cart
+  const saveToRecent = (itemId: number) => {
+    setRecentItems(prev => {
+      const updated = [itemId, ...prev.filter(id => id !== itemId)].slice(0, 10);
+      localStorage.setItem('pos_recent_items', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -178,13 +264,24 @@ const MenuList = ({
     const matchesCategory = activeCategory === "All Items" || item.category === activeCategory;
     return matchesSearch && matchesCategory;
   }).sort((a, b) => {
-    // Sort items: those with multiple portions first, then single portion items
+    // Priority: Popular items first, then recent items, then by portions
+    const aIsPopular = popularItems?.includes(a.id);
+    const bIsPopular = popularItems?.includes(b.id);
+    if (aIsPopular && !bIsPopular) return -1;
+    if (!aIsPopular && bIsPopular) return 1;
+    
+    const aIsRecent = recentItems.includes(a.id);
+    const bIsRecent = recentItems.includes(b.id);
+    if (aIsRecent && !bIsRecent) return -1;
+    if (!aIsRecent && bIsRecent) return 1;
+    
+    // Then sort by portions
     const aHasMultiplePortions = a.portions && a.portions.length > 1;
     const bHasMultiplePortions = b.portions && b.portions.length > 1;
-    
     if (aHasMultiplePortions && !bHasMultiplePortions) return -1;
     if (!aHasMultiplePortions && bHasMultiplePortions) return 1;
-    return 0; // Keep original order within each group
+    
+    return 0;
   });
 
   const handleAddNewItem = () => {
@@ -228,15 +325,47 @@ const MenuList = ({
     return cartItem?.quantity || 0;
   };
 
-  const handleAddToCart = (item: any) => {
+  const handleAddToCart = (item: any, quantity: number = 1) => {
     const portionType = selectedPortions[item.id] || item.portions[0];
+    const currentQuantity = getCartQuantity(item, portionType);
     
-    // Show toast notification
-    toast({
-      title: "Item added to cart",
-      description: `${item.name} (${portionType.label}) added successfully`,
-    });
-    onAddToCart(item, portionType);
+    // If item is already in cart, use updateQuantity to add more
+    if (currentQuantity > 0 && onUpdateQuantity) {
+      // Add the additional quantity directly
+      onUpdateQuantity(item.id, portionType.label, quantity);
+    } else {
+      // Item not in cart - add it first, then increment quantity
+      // Add once to create the cart item
+      onAddToCart(item, portionType);
+      
+      // If quantity > 1, add remaining using updateQuantity
+      // Use requestAnimationFrame to ensure cart state has updated
+      if (quantity > 1 && onUpdateQuantity) {
+        requestAnimationFrame(() => {
+          // Double-check the item is now in cart before updating
+          const checkQuantity = getCartQuantity(item, portionType);
+          if (checkQuantity > 0) {
+            onUpdateQuantity(item.id, portionType.label, quantity - 1);
+          } else {
+            // If still not in cart, try again after a brief delay
+            setTimeout(() => {
+              onUpdateQuantity(item.id, portionType.label, quantity - 1);
+            }, 100);
+          }
+        });
+      }
+    }
+    
+    // Save to recent items
+    saveToRecent(item.id);
+    
+    // Minimal toast for speed (only show for multiple items)
+    if (quantity > 1) {
+      toast({
+        title: `${quantity}x ${item.name} added`,
+        duration: 1000,
+      });
+    }
   };
 
   const generateCsvTemplate = () => {
@@ -333,21 +462,18 @@ const MenuList = ({
     return <p className="text-destructive">Error loading menu items: {error.message}</p>;
   }
 
+  // Get popular and recent items for quick access
+  const quickAccessItems = menuItems?.filter(item => 
+    (popularItems?.includes(item.id) || recentItems.includes(item.id)) && 
+    (activeCategory === "All Items" || item.category === activeCategory) &&
+    (!localSearch || item.name.toLowerCase().includes(localSearch.toLowerCase()))
+  ).slice(0, 8) || [];
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search menu items... (start typing)"
-            value={localSearch}
-            onChange={handleSearchChange}
-            className="pl-9 pr-3 w-full"
-            autoFocus
-          />
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Admin Controls Panel - Collapsible */}
+      {isAdmin && showAdminControls && (
+        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border-2 border-dashed">
           <Button
             variant={isEditMode ? "default" : "outline"}
             onClick={handleToggleEditMode}
@@ -358,7 +484,7 @@ const MenuList = ({
           </Button>
           <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add / Import
               </Button>
@@ -453,21 +579,64 @@ const MenuList = ({
             </DialogContent>
           </Dialog>
         </div>
-      </div>
+      )}
 
-      <div className="flex overflow-x-auto gap-2 pb-2">
-        {categories.map((category) => (
+      {/* Category Filters - Enhanced with keyboard hints */}
+      <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+        {categories.map((category, index) => (
           <Button
             key={category}
             variant={activeCategory === category ? "default" : "outline"}
             size="sm"
             onClick={() => setActiveCategory(category)}
-            className="whitespace-nowrap"
+            className={`whitespace-nowrap ${
+              activeCategory === category 
+                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                : 'hover:bg-blue-50'
+            }`}
+            title={`Press ${index + 1} to select`}
           >
             {category}
+            {index < 5 && (
+              <span className="ml-2 text-xs opacity-70">({index + 1})</span>
+            )}
           </Button>
         ))}
       </div>
+
+      {/* Quick Access - Popular/Recent Items */}
+      {quickAccessItems.length > 0 && !localSearch && activeCategory === "All Items" && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+            <TrendingUp className="h-4 w-4" />
+            <span>Quick Access</span>
+          </div>
+          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+            {quickAccessItems.map((item) => {
+              const portionType = selectedPortions[item.id] || item.portions[0];
+              const quantity = getCartQuantity(item, portionType);
+              
+              return (
+                <Card 
+                  key={item.id}
+                  className="cursor-pointer hover:border-blue-400 hover:shadow-md transition-all border-2 border-blue-200 bg-blue-50/30"
+                  onClick={() => handleAddToCart(item)}
+                >
+                  <CardContent className="p-2 text-center">
+                    <p className="text-xs font-semibold truncate mb-1">{item.name}</p>
+                    <p className="text-xs font-bold text-blue-600">₹{portionType.price.toFixed(0)}</p>
+                    {quantity > 0 && (
+                      <div className="mt-1 w-5 h-5 mx-auto bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        {quantity}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -506,6 +675,16 @@ const MenuList = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-sm truncate">{item.name}</h3>
+                        {popularItems?.includes(item.id) && (
+                          <div title="Popular">
+                            <TrendingUp className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                          </div>
+                        )}
+                        {recentItems.includes(item.id) && !popularItems?.includes(item.id) && (
+                          <div title="Recent">
+                            <Clock className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                          </div>
+                        )}
                         {isEditMode && (
                           <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                             Tap to edit
@@ -513,8 +692,8 @@ const MenuList = ({
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-primary">
-                          ₹{(selectedPortions[item.id]?.price || item.portions[0].price).toFixed(2)}
+                        <p className="text-sm font-bold text-blue-600">
+                          ₹{(selectedPortions[item.id]?.price || item.portions[0].price).toFixed(0)}
                         </p>
                         <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
                           {item.category}
@@ -544,45 +723,64 @@ const MenuList = ({
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
-                              onClick={() => {
+                              className="h-9 w-9 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 if (onUpdateQuantity) {
                                   onUpdateQuantity(item.id, portionType.label, -1);
                                 }
                               }}
                             >
-                              <MinusCircle className="h-3.5 w-3.5" />
+                              <MinusCircle className="h-4 w-4" />
                             </Button>
-                            <div className="flex-1 text-center">
-                              <span className="text-xs font-semibold">{quantity} added</span>
+                            <div className="flex-1 text-center bg-blue-50 rounded py-1.5">
+                              <span className="text-sm font-bold text-blue-600">{quantity}</span>
                             </div>
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
-                              onClick={() => {
+                              className="h-9 w-9 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 if (onUpdateQuantity) {
-                                  const currentQty = getCartQuantity(item, portionType);
-                                  if (currentQty > 0) {
-                                    onUpdateQuantity(item.id, portionType.label, 1);
-                                  } else {
-                                    handleAddToCart(item);
-                                  }
+                                  onUpdateQuantity(item.id, portionType.label, 1);
                                 } else {
                                   handleAddToCart(item);
                                 }
                               }}
                             >
-                              <PlusCircle className="h-3.5 w-3.5" />
+                              <PlusCircle className="h-4 w-4" />
                             </Button>
+                            {/* Quick add buttons - only on desktop, hidden on mobile */}
+                            {!isMobile && (
+                              <div className="flex gap-1 ml-1">
+                                {[2, 3, 5].map(qty => (
+                                  <Button
+                                    key={qty}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddToCart(item, qty);
+                                    }}
+                                  >
+                                    +{qty}
+                                  </Button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       }
                       
                       return (
                         <Button
-                          onClick={() => handleAddToCart(item)}
-                          className="w-full h-8 text-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(item);
+                          }}
+                          className="w-full h-9 text-sm font-semibold bg-blue-500 hover:bg-blue-600 text-white"
                           size="sm"
                         >
                           Add to Cart
