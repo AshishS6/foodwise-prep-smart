@@ -1,8 +1,10 @@
 // Supabase configuration constants
+// SECURITY: Never hardcode API keys in source code!
+// Use environment variables instead.
 export const SUPABASE_CONFIG = {
   // Use hosted Supabase project
-  url: import.meta.env.VITE_SUPABASE_URL || "https://obyyvjwnowrvonteuekw.supabase.co",
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ieXl2andub3dydm9udGV1ZWt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTUyOTUsImV4cCI6MjA3OTk5MTI5NX0.hyhFgN3R3AoRcSGu77IHIE05dDojnEy09JD2yHyAON8"
+  url: import.meta.env.VITE_SUPABASE_URL,
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY
 };
 
 // Validate configuration
@@ -10,7 +12,11 @@ export const validateSupabaseConfig = () => {
   const { url, anonKey } = SUPABASE_CONFIG;
   
   if (!url || !anonKey) {
-    throw new Error('Missing Supabase configuration');
+    throw new Error(
+      'Missing Supabase configuration. ' +
+      'Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables. ' +
+      'See .env.example for reference.'
+    );
   }
   
   if (!url.startsWith('https://') && !url.startsWith('http://localhost')) {
