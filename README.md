@@ -1,73 +1,117 @@
-# Welcome to your Lovable project
+# Payasakkada — Restaurant Management System
 
-## Project info
+A full-stack restaurant management SPA for streamlining kitchen and front-of-house operations. Built as a portfolio project with role-based access, real-time order tracking, inventory management, and analytics.
 
-**URL**: https://lovable.dev/projects/b9187672-1093-49c9-8ec1-31603eb082f6
+🔗 **Live:** [payasakkada.vercel.app](https://payasakkada.vercel.app)
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Demo Accounts
 
-**Use Lovable**
+Try the app instantly — no sign-up required:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b9187672-1093-49c9-8ec1-31603eb082f6) and start prompting.
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@foodwise.demo | FoodWise@2024 |
+| Manager | manager@foodwise.demo | FoodWise@2024 |
+| Kitchen Staff | kitchen@foodwise.demo | FoodWise@2024 |
+| Cashier | cashier@foodwise.demo | FoodWise@2024 |
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## Features
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- **POS System** — Take orders with Full/Half portion sizes, bill splitting, and item notes
+- **Inventory Management** — Track ingredient stock with auto-decrement on order completion
+- **Recipe Management** — Link menu items to ingredients with exact quantities
+- **Prep Planning** — Daily kitchen prep targets vs actuals
+- **Kitchen Orders** — Live order queue with status workflow (Pending → In Progress → Ready → Completed)
+- **Analytics & Reports** — Revenue charts, order trends, category breakdowns, Excel export
+- **Team Management** — Invite team members and assign roles
+- **Activity Audit Log** — Every user action logged for accountability
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, TypeScript 5.5, Vite |
+| UI | shadcn/ui (Radix UI), Tailwind CSS |
+| State | Zustand (auth), React Query v5 (server state) |
+| Backend | Supabase (PostgreSQL + Auth) |
+| Security | Row Level Security (RLS) policies per role |
+| Forms | React Hook Form + Zod |
+| Charts | Recharts |
+| Export | exceljs + file-saver |
+| Deployment | Vercel + Supabase Cloud (ap-south-1) |
+
+---
+
+## Role-Based Access
+
+| Role | Accessible Areas |
+|------|-----------------|
+| Admin | Everything |
+| Manager | Dashboard, POS, Inventory, Recipes, Prep Plans, Analytics, Reports, Kitchen |
+| Kitchen Staff | POS, Inventory, Recipes, Prep Plans, Kitchen Orders |
+| Cashier | Dashboard, POS, Order History |
+
+---
+
+## Local Development
+
+### Prerequisites
+- Node.js 18+ ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- A Supabase project with the schema from `supabase/setup.sql`
+
+### Setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repo
+git clone https://github.com/AshishS6/foodwise-prep-smart.git
+cd foodwise-prep-smart
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Create environment file
+cp .env.example .env
+# Fill in your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+App runs at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Database Setup
 
-**Use GitHub Codespaces**
+Run the SQL files in order in your Supabase SQL editor:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. `supabase/setup.sql` — creates tables, functions, and RLS policies
+2. `supabase/seed.sql` — populates demo data (menu items, orders, ingredients)
+3. `supabase/demo-users.sql` — links demo auth users to roles (create the 4 auth users first)
 
-## What technologies are used for this project?
+### Available Scripts
 
-This project is built with:
+```sh
+npm run dev       # Start dev server (port 8080)
+npm run build     # Production build
+npm run lint      # ESLint
+npm run preview   # Preview production build
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Deployment
 
-Simply open [Lovable](https://lovable.dev/projects/b9187672-1093-49c9-8ec1-31603eb082f6) and click on Share -> Publish.
+Deployed on Vercel. Set these environment variables in your Vercel project:
 
-## Can I connect a custom domain to my Lovable project?
+```
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_APP_URL=https://your-vercel-url.vercel.app
+```
 
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+After deploying, add your Vercel URL to Supabase → Authentication → URL Configuration.
