@@ -611,22 +611,22 @@ const MenuList = ({
             <TrendingUp className="h-4 w-4" />
             <span>Quick Access</span>
           </div>
-          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-2">
             {quickAccessItems.map((item) => {
               const portionType = selectedPortions[item.id] || item.portions[0];
               const quantity = getCartQuantity(item, portionType);
-              
+
               return (
-                <Card 
+                <Card
                   key={item.id}
-                  className="cursor-pointer hover:border-blue-400 hover:shadow-md transition-all border-2 border-blue-200 bg-blue-50/30"
+                  className="cursor-pointer hover:border-blue-400 hover:shadow-md transition-all border border-blue-200 bg-blue-50/40"
                   onClick={() => handleAddToCart(item)}
                 >
-                  <CardContent className="p-2 text-center">
-                    <p className="text-xs font-semibold truncate mb-1">{item.name}</p>
+                  <CardContent className="p-2 text-center relative">
+                    <p className="text-xs font-semibold line-clamp-2 leading-tight mb-1">{item.name}</p>
                     <p className="text-xs font-bold text-blue-600">₹{portionType.price.toFixed(0)}</p>
                     {quantity > 0 && (
-                      <div className="mt-1 w-5 h-5 mx-auto bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
                         {quantity}
                       </div>
                     )}
@@ -691,11 +691,11 @@ const MenuList = ({
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-sm font-bold text-blue-600">
                           ₹{(selectedPortions[item.id]?.price || item.portions[0].price).toFixed(0)}
                         </p>
-                        <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground whitespace-nowrap">
                           {item.category}
                         </span>
                       </div>

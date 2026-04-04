@@ -203,25 +203,22 @@ const Index = () => {
 
   const modules = [
     {
-      title: "POS / Sales Entry",
-      icon: <ShoppingCart className="h-8 w-8 text-blue-500" />,
-      description: "Create new orders and process sales",
+      title: "POS",
+      icon: <ShoppingCart className="h-6 w-6 text-blue-500" />,
       path: "/pos",
-      bgColor: "hover:bg-blue-50"
+      bgColor: "hover:bg-blue-50/60"
     },
     {
-      title: "Inventory Management",
-      icon: <Package className="h-8 w-8 text-orange-500" />,
-      description: "Manage ingredients and stock levels",
+      title: "Inventory",
+      icon: <Package className="h-6 w-6 text-orange-500" />,
       path: "/inventory",
-      bgColor: "hover:bg-orange-50"
+      bgColor: "hover:bg-orange-50/60"
     },
     {
-      title: "Recipe Management",
-      icon: <ScrollText className="h-8 w-8 text-green-500" />,
-      description: "Define dishes and required ingredients",
+      title: "Recipes",
+      icon: <ScrollText className="h-6 w-6 text-green-500" />,
       path: "/recipes",
-      bgColor: "hover:bg-green-50"
+      bgColor: "hover:bg-green-50/60"
     }
   ];
 
@@ -472,25 +469,19 @@ const Index = () => {
           </div>
 
 
-        {/* Simplified Quick Actions - Only Essential */}
-        <div className="mt-6 md:mt-8">
-          <h2 className="text-lg font-semibold mb-4 text-muted-foreground">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {modules.filter(m => 
-              m.title === "POS / Sales Entry" || 
-              m.title === "Inventory Management" || 
-              m.title === "Recipe Management"
-            ).map((module) => (
+        {/* Quick Actions */}
+        <div className="mt-4 md:mt-6">
+          <h2 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wide">Quick Actions</h2>
+          <div className="grid grid-cols-3 gap-3">
+            {modules.map((module) => (
               <Button
                 key={module.title}
                 variant="outline"
-                className={`h-auto p-4 md:p-6 flex flex-col items-center justify-center gap-3 text-center rounded-xl transition-all duration-200 hover:shadow-lg bg-white border-2 hover:scale-105 ${module.bgColor}`}
+                className={`h-auto py-4 px-2 flex flex-col items-center justify-center gap-2 text-center rounded-xl transition-colors duration-150 bg-white border hover:shadow-sm ${module.bgColor}`}
                 onClick={() => navigate(module.path)}
               >
-                <div className="h-10 w-10 md:h-12 md:w-12">{module.icon}</div>
-                <div>
-                  <h3 className="font-bold text-sm md:text-base">{module.title.replace(' / Sales Entry', '').replace(' Management', '')}</h3>
-                </div>
+                {module.icon}
+                <span className="font-semibold text-xs md:text-sm">{module.title}</span>
               </Button>
             ))}
           </div>
