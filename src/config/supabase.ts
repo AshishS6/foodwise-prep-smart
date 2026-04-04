@@ -32,19 +32,3 @@ export const validateSupabaseConfig = () => {
 
 // Check if we're in development mode
 export const isDevelopment = import.meta.env.DEV;
-
-// Log configuration in development
-if (isDevelopment) {
-  console.log('Environment variables:', {
-    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20) + '...',
-    VITE_APP_URL: import.meta.env.VITE_APP_URL,
-    CURRENT_ORIGIN: typeof window !== 'undefined' ? window.location.origin : 'N/A'
-  });
-  
-  console.log('Supabase Configuration:', {
-    url: SUPABASE_CONFIG.url,
-    keyPrefix: SUPABASE_CONFIG.anonKey.substring(0, 20) + '...',
-    isValid: validateSupabaseConfig()
-  });
-}

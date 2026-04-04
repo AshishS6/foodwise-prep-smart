@@ -328,7 +328,7 @@ export function TeamManagement() {
                 teamMembers.map((member) => (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">
-                      {member.email === 'ashishsasikumar@gmail.com' ? 'Ashish' : (member.name || "Not set")}
+                      {member.name || "Not set"}
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell>

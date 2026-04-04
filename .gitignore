@@ -28,3 +28,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI tool workspaces (not project code)
+.agents/
+.claude/
+.goose/
+.kiro/
+.qoder/
+.trae/
+.windsurf/
+.mcp.json
+skills-lock.json

@@ -26,7 +26,6 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const Profile = lazy(() => import("./pages/Profile"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const Test = lazy(() => import("./pages/Test"));
 const KitchenOrders = lazy(() => import("./pages/KitchenOrders"));
 
 const LoadingFallback = () => (
@@ -86,18 +85,11 @@ const ProtectedRoute = ({
     return <Navigate to="/auth" replace />;
   }
 
-  // Special case for specific email - always allow access
-  const userEmail = user?.email;
-  if (userEmail === 'ashishsasikumar@gmail.com') {
-    return children;
-  }
-
   // Check if user's role has the required permission
   const userRole = teamMember?.role;
   
   // If no team member record exists, show invitation required message
   if (!teamMember && user && user.email) {
-    console.log('No team member record found for user:', user.email);
     
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
@@ -176,9 +168,8 @@ const AppContent = () => {
       {!isMobile && !isAuthPage && (
         <ResponsiveSidebar>
           <Routes>
-            <Route path="/test" element={<Test />} />
-            <Route 
-              path="/" 
+            <Route
+              path="/"
               element={
                 <ProtectedRoute requiredPermission="dashboard">
                   <Suspense fallback={<LoadingFallback />}>
@@ -297,29 +288,21 @@ const AppContent = () => {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/test" 
-              element={
-                <Suspense fallback={<LoadingFallback />}>
-                  <Test />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/auth" 
+            <Route
+              path="/auth"
               element={
                 <Suspense fallback={<LoadingFallback />}>
                   <Auth />
                 </Suspense>
-              } 
+              }
             />
-            <Route 
-              path="/auth/callback" 
+            <Route
+              path="/auth/callback"
               element={
                 <Suspense fallback={<LoadingFallback />}>
                   <AuthCallback />
                 </Suspense>
-              } 
+              }
             />
             {/* Catch-all route */}
             <Route path="*" element={
@@ -458,29 +441,21 @@ const AppContent = () => {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/test" 
-              element={
-                <Suspense fallback={<LoadingFallback />}>
-                  <Test />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/auth" 
+            <Route
+              path="/auth"
               element={
                 <Suspense fallback={<LoadingFallback />}>
                   <Auth />
                 </Suspense>
-              } 
+              }
             />
-            <Route 
-              path="/auth/callback" 
+            <Route
+              path="/auth/callback"
               element={
                 <Suspense fallback={<LoadingFallback />}>
                   <AuthCallback />
                 </Suspense>
-              } 
+              }
             />
             {/* Catch-all route */}
             <Route path="*" element={

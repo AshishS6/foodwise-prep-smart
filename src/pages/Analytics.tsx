@@ -47,15 +47,12 @@ export default function Analytics() {
       return;
     }
     
-    console.log("Analytics page - Session:", session?.user?.email);
-    console.log("Analytics page - User role:", userRole);
   }, [session, userRole, navigate, toast]);
 
   const { data: orders, isLoading: ordersLoading, error: ordersError } = useQuery({
     queryKey: ['orders', timeRange],
     queryFn: async () => {
       const startDate = getStartDateForRange(timeRange);
-      console.log("Fetching orders from:", startDate.toISOString());
       
       const { data, error } = await supabase
         .from('orders')
