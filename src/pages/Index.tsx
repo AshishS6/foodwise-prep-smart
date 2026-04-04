@@ -439,13 +439,15 @@ const Index = () => {
                               <span className="text-sm font-semibold text-green-700">
                                 ₹{order.total?.toFixed(2) || '0.00'}
                               </span>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                order.order_status === 'completed' ? 'bg-green-100 text-green-700 border border-green-300' :
-                                order.order_status === 'ready' ? 'bg-blue-100 text-blue-700 border border-blue-300' :
-                                order.order_status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' :
-                                'bg-gray-100 text-gray-700 border border-gray-300'
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium border ${
+                                order.order_status === 'completed' ? 'bg-slate-50 text-slate-600 border-slate-200' :
+                                order.order_status === 'ready'     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                order.order_status === 'in_progress' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
                               }`}>
-                                {order.order_status || 'pending'}
+                                {order.order_status === 'in_progress' ? 'In Progress' :
+                                 order.order_status === 'completed' ? 'Completed' :
+                                 order.order_status === 'ready' ? 'Ready' : 'Pending'}
                               </span>
                             </div>
                           ))}

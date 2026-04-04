@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, Utensils, CheckCircle2, ChefHat, Play, Package, X } from "lucide-react";
+import { ArrowLeft, Clock, Utensils, CheckCircle2, ChefHat, Play, Package, CheckCheck } from "lucide-react";
+import { StatusBadge, getStatusConfig } from "@/utils/orderStatus";
 import { useDeviceDetection } from "@/hooks/useDeviceDetection";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -114,17 +115,7 @@ const KitchenOrders = () => {
     return <Badge variant="outline">Unknown</Badge>;
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; className: string }> = {
-      'pending': { label: 'Pending', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-      'in_progress': { label: 'In Progress', className: 'bg-orange-50 text-orange-700 border-orange-200' },
-      'ready': { label: 'Ready', className: 'bg-green-50 text-green-700 border-green-200' },
-      'completed': { label: 'Completed', className: 'bg-gray-50 text-gray-700 border-gray-200' }
-    };
-    
-    const config = statusConfig[status] || statusConfig['pending'];
-    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
-  };
+  const getStatusBadge = (status: string) => <StatusBadge status={status} />;
 
   const handleStatusUpdate = (orderId: number, newStatus: OrderStatus, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
@@ -212,40 +203,26 @@ const KitchenOrders = () => {
         )}
 
       {/* Quick Stats Summary */}
-      {orders && orders.length > 0 && (
-        <div className={`grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4`}>
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-3 md:p-4">
-              <div className="text-xs md:text-sm text-blue-700 font-medium mb-1">Total Active</div>
-              <div className="text-xl md:text-2xl font-bold text-blue-900">{orders.length}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-yellow-50 border-yellow-200">
-            <CardContent className="p-3 md:p-4">
-              <div className="text-xs md:text-sm text-yellow-700 font-medium mb-1">Pending</div>
-              <div className="text-xl md:text-2xl font-bold text-yellow-900">
-                {orders.filter((o: any) => o.order_status === 'pending').length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-orange-50 border-orange-200">
-            <CardContent className="p-3 md:p-4">
-              <div className="text-xs md:text-sm text-orange-700 font-medium mb-1">In Progress</div>
-              <div className="text-xl md:text-2xl font-bold text-orange-900">
-                {orders.filter((o: any) => o.order_status === 'in_progress').length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-3 md:p-4">
-              <div className="text-xs md:text-sm text-green-700 font-medium mb-1">Ready</div>
-              <div className="text-xl md:text-2xl font-bold text-green-900">
-                {orders.filter((o: any) => o.order_status === 'ready').length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {orders && orders.length > 0 && (() => {
+        const stats = [
+          { label: 'Total Active', count: orders.length, cfg: { statBg: 'bg-sky-50', statBorder: 'border-sky-200', statText: 'text-sky-800' } },
+          { label: 'Pending',      count: orders.filter((o: any) => o.order_status === 'pending').length,     cfg: getStatusConfig('pending') },
+          { label: 'In Progress',  count: orders.filter((o: any) => o.order_status === 'in_progress').length, cfg: getStatusConfig('in_progress') },
+          { label: 'Ready',        count: orders.filter((o: any) => o.order_status === 'ready').length,       cfg: getStatusConfig('ready') },
+        ];
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {stats.map(({ label, count, cfg }) => (
+              <Card key={label} className={`${cfg.statBg} ${cfg.statBorder} border`}>
+                <CardContent className="p-3 md:p-4">
+                  <div className={`text-xs font-medium mb-1 ${cfg.statText} opacity-80`}>{label}</div>
+                  <div className={`text-2xl font-bold tracking-tight ${cfg.statText}`}>{count}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        );
+      })()}
 
       <Card className="mb-6">
         <CardHeader>
@@ -366,9 +343,9 @@ const KitchenOrders = () => {
                                   handleStatusUpdate(order.id, 'completed', e);
                                 }}
                                 disabled={updateOrderStatus.isPending}
-                                className={`${isMobile ? "w-full text-xs h-8" : "w-full"} border-gray-300`}
+                                className={`${isMobile ? "w-full text-xs h-8" : "w-full"} border-slate-300 text-slate-600 hover:bg-slate-50`}
                               >
-                                <X className={isMobile ? "h-3 w-3 mr-1" : "h-3.5 w-3.5 mr-1"} />
+                                <CheckCheck className={isMobile ? "h-3 w-3 mr-1" : "h-3.5 w-3.5 mr-1"} />
                                 Complete
                               </Button>
                             </>
@@ -382,9 +359,9 @@ const KitchenOrders = () => {
                                 handleStatusUpdate(order.id, 'completed', e);
                               }}
                               disabled={updateOrderStatus.isPending}
-                              className={`${isMobile ? "w-full text-xs h-9 font-semibold" : "w-full font-semibold"} bg-purple-600 hover:bg-purple-700 shadow-md`}
+                              className={`${isMobile ? "w-full text-xs h-9 font-semibold" : "w-full font-semibold"} bg-slate-700 hover:bg-slate-800 shadow-sm`}
                             >
-                              <CheckCircle2 className={isMobile ? "h-3.5 w-3.5 mr-1.5" : "h-4 w-4 mr-1.5"} />
+                              <CheckCheck className={isMobile ? "h-3.5 w-3.5 mr-1.5" : "h-4 w-4 mr-1.5"} />
                               Complete Order
                             </Button>
                           )}
