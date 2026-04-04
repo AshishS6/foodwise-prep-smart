@@ -353,7 +353,7 @@ export default function Analytics() {
         <Header />
       )}
 
-      <MobileContainer className="md:container md:mx-auto md:p-4 md:p-6">
+      <MobileContainer className="md:container md:mx-auto md:p-4">
         {!isMobile && (
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -417,24 +417,24 @@ export default function Analytics() {
           {/* Key Metrics - Color Coded */}
           <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4 mb-6`}>
             <Card className="border-2 border-blue-200 bg-blue-50/30">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <p className="text-sm font-medium text-blue-700 mb-1">Total Revenue</p>
                 <p className="text-3xl font-bold text-blue-600">₹{totalRevenue.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {timeRange === 'day' ? 'Today' : 
+                  {timeRange === 'day' ? 'Today' :
                    timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
                 </p>
               </CardContent>
             </Card>
             <Card className="border-2 border-green-200 bg-green-50/30">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <p className="text-sm font-medium text-green-700 mb-1">Average Order</p>
                 <p className="text-3xl font-bold text-green-600">₹{averageOrderValue.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground mt-2">{totalOrders} orders</p>
               </CardContent>
             </Card>
             <Card className="border-2 border-purple-200 bg-purple-50/30">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <p className="text-sm font-medium text-purple-700 mb-1">Total Orders</p>
                 <p className="text-3xl font-bold text-purple-600">{totalOrders}</p>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -467,7 +467,7 @@ export default function Analytics() {
                 </div>
               </CardHeader>
               {popularItemsExpanded && (
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   <div className="border rounded-md overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -525,7 +525,7 @@ export default function Analytics() {
                 </div>
               </CardHeader>
               {salesTrendExpanded && (
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   <div className="border rounded-md overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -589,7 +589,7 @@ export default function Analytics() {
               </div>
             </CardHeader>
             {itemSalesExpanded && (
-              <CardContent>
+              <CardContent className="p-4 pt-0">
                 <ItemSalesAnalysis sales={itemSales} />
               </CardContent>
             )}
@@ -616,7 +616,7 @@ export default function Analytics() {
                 </div>
               </CardHeader>
               {lowStockExpanded && (
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   <LowStockTable items={lowStockItems} />
                 </CardContent>
               )}

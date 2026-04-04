@@ -171,13 +171,13 @@ const OrderHistory = () => {
       {/* Color-Coded Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card className="border-2 border-blue-200 bg-blue-50/30">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <p className="text-sm font-medium text-blue-700 mb-1">Total Orders</p>
             <p className="text-3xl font-bold text-blue-600">{orders?.length || 0}</p>
           </CardContent>
         </Card>
         <Card className="border-2 border-green-200 bg-green-50/30">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <p className="text-sm font-medium text-green-700 mb-1">Total Revenue</p>
             <p className="text-3xl font-bold text-green-600">₹{totalRevenue.toFixed(2)}</p>
           </CardContent>

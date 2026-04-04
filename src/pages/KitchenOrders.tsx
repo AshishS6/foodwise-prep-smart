@@ -225,7 +225,7 @@ const KitchenOrders = () => {
       })()}
 
       <Card className="mb-6">
-        <CardHeader>
+        <CardHeader className="px-3 py-3 md:px-4 md:py-4">
           <CardTitle className="flex items-center justify-between">
             <span>Active Orders</span>
             {orders && orders.length > 0 && (
@@ -235,7 +235,7 @@ const KitchenOrders = () => {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 pb-3 pt-0 md:px-4 md:pb-4">
           {orders && orders.length > 0 ? (
             <div className={isMobile ? "space-y-2" : "space-y-4"}>
               {orders.map((order) => {
